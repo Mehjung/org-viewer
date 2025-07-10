@@ -40,8 +40,8 @@ Ein interaktiver Organisationsdiagramm-Viewer für die Deutsche Bahn mit moderne
   "children": [
     {
       "id": "it",
-      "name": "R.RR-MI-BB-HE - IT-Abteilung",
-      "person": "Anna Schmidt",
+      "name": "HH-FF - IT-Abteilung",
+      "person": "Max Musterfrau",
       "children": []
     }
   ]
@@ -97,18 +97,18 @@ Ein interaktiver Organisationsdiagramm-Viewer für die Deutsche Bahn mit moderne
 Das System erkennt automatisch Organisationsbezeichnungen:
 
 ```
-R.RR-MI-BB-HE - Betriebszentrum Hamburg
+AA-BB-CC-DD - Wurstfabrik
 ```
 
-**Sortier-Key**: `R.RR-MI-BB-HE` (Text vor letztem `-`)
-**Ignoriert**: `Betriebszentrum Hamburg` (Funktionsbeschreibung)
+**Sortier-Key**: `AA-BB-CC-DD` (Text vor letztem `-`)
+**Ignoriert**: `Wurstfabrik` (Funktionsbeschreibung)
 
 ## 🎨 **Design-System**
 
 ### **Farben**
-- **DB Rot**: `#EC0016` (Logo, Akzente)
-- **DB Blau**: `#0066CC` (Interaktive Elemente)
-- **DB Grau**: `#646973` (Text, Inaktive States)
+- **Rot**: `#EC0016` (Logo, Akzente)
+- **Blau**: `#0066CC` (Interaktive Elemente)
+- **Grau**: `#646973` (Text, Inaktive States)
 
 ### **Expand-Indikatoren**
 - **Expandiert**: Blauer gestrichelter Ring (`opacity: 0.7`)
@@ -155,7 +155,7 @@ MIT License - siehe [LICENSE](LICENSE) für Details.
 
 ## 🎯 **Credits**
 
-Entwickelt für die Deutsche Bahn AG mit Fokus auf moderne UX und Performance.
+None
 
 ---
 
