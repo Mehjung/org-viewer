@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DB Org Chart – Zoom & Export</title>
+  <style>
+    /* === RESET & THEME === */
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--db-red:#EC0016;--db-blue:#0066CC;--db-blue-dark:#003D7A;--db-gray:#646973;--db-gray-light:#DADADA;--db-gray-lighter:#F0F3F5;--text-primary:#282D37;--text-secondary:#646973;--background:#FFF;--border:#DADADA}
+    body{font-family:"DB Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--background);color:var(--text-primary);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* === HEADER === */
+    .header{background:var(--background);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 4px rgba(0,0,0,.05)}
+    .logo{font-size:1.75rem;font-weight:700;color:var(--db-red);margin-right:2rem}
+    .button{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;font-size:.875rem;font-weight:500;border:1px solid var(--border);border-radius:4px;background:var(--background);cursor:pointer;color:var(--text-primary);transition:.2s}
+    .button svg{stroke:currentColor}
+    .button:hover{background:var(--db-gray-lighter);border-color:var(--db-blue);color:var(--db-blue)}
+    .button.primary{background:var(--db-blue);border-color:var(--db-blue);color:#fff}
+    .button.primary:hover{background:var(--db-blue-dark);border-color:var(--db-blue-dark)}
+    .stats{margin-left:auto;font-size:.875rem;color:var(--text-secondary)}
+
+    /* === CANVAS === */
+    .container{flex:1;position:relative;overflow:hidden;background:var(--db-gray-lighter)}
+    .chart-container{position:absolute;inset:0;overflow:auto;padding:3rem;cursor:default}
+    .chart-svg{min-width:100%;min-height:100%;transform-origin:0 0}
+
+    /* === NODES === */
+    .node-circle{fill:#fff;stroke:var(--db-gray-light);stroke-width:2;transition:.3s}
+    .node-circle.active,.node-circle.in-path{fill:var(--db-blue);stroke:var(--db-blue)}
+    .node-circle:hover{stroke:var(--db-blue);stroke-width:3}
+    .node-text{font-size:13px;fill:var(--text-primary);font-weight:500;white-space:pre;user-select:none;-webkit-user-select:none;-moz-user-select:none}
+    .node-text.inactive{fill:var(--text-secondary)}
+    .node-person{font-size:12px;fill:var(--text-secondary);user-select:none;-webkit-user-select:none;-moz-user-select:none}
+    .expand-indicator{fill:none;stroke:var(--db-blue);stroke-width:2;stroke-dasharray:3,2;opacity:0.7}
+    .expand-indicator.collapsed{stroke:var(--db-gray);stroke-dasharray:2,3;opacity:0.5}
+    .connection{fill:none;stroke:var(--db-blue);stroke-width:2}
+    .connection.inactive{stroke:var(--db-gray-light);stroke-width:1}
+
+
+
+    /* === MODALS === */
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+    .modal.open{display:flex}
+    .modal-content{background:var(--background);border-radius:8px;padding:2rem;width:90%;max-width:480px;box-shadow:0 10px 25px rgba(0,0,0,.1)}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+    .modal-title{font-size:1.25rem;font-weight:600}
+    .close-button{background:none;border:none;font-size:1.5rem;color:var(--text-secondary);cursor:pointer}
+    .close-button:hover{color:var(--text-primary)}
+    .input{width:100%;padding:.75rem;border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-bottom:1rem}
+    .search-results{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px}
+    .search-result{padding:.75rem;border-bottom:1px solid var(--border);cursor:pointer;transition:.2s}
+    .search-result:last-child{border-bottom:none}
+    .search-result:hover{background:var(--db-gray-lighter)}
+    .search-result.selected{background:var(--db-blue);color:#fff}
+    .search-match{font-weight:600;color:var(--db-blue)}
+    .export-options{display:flex;gap:1rem;margin-top:.5rem}
+    .export-option{flex:1;padding:.75rem;border:2px solid var(--border);border-radius:4px;text-align:center;cursor:pointer;transition:.2s}
+    .export-option:hover{border-color:var(--db-blue);background:var(--db-gray-lighter)}
+    .export-option.selected{border-color:var(--db-blue);background:var(--db-blue);color:#fff}
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">DB</div>
+    <button class="button" onclick="loadFile()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Datei laden
+    </button>
+
+    <button class="button" onclick="collapseSelected()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Einklappen
+    </button>
+    <button class="button" onclick="openExportModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 1 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Export
+    </button>
+    <div class="stats"><span id="nodeCount">0</span>&nbsp;Abteilungen</div>
+    <div class="stats"><span id="zoomLevel">100</span>%</div>
+  </div>
+
+  <!-- MAIN VIEW -->
+  <div class="container"><div id="chartContainer" class="chart-container"><svg id="chartSvg" class="chart-svg"></svg></div></div>
+
+
+  <!-- EXPORT MODAL -->
+  <div id="exportModal" class="modal">
+    <div class="modal-content" style="max-width:800px">
+      <div class="modal-header"><h2 class="modal-title">Export</h2><button class="close-button" onclick="closeExportModal()">&times;</button></div>
+      <div style="display:flex;gap:1rem">
+        <div style="flex:1">
+          <input id="exportSearch" class="input" placeholder="Abteilung suchen…" oninput="exportSearch()" autocomplete="off">
+          <div id="exportResults" class="search-results"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:center;justify-content:center;padding:1rem">
+          <button class="button" onclick="addToExportList()" style="font-size:1.2rem;padding:0.5rem">→</button>
+          <button class="button" onclick="removeFromExportList()" style="font-size:1.2rem;padding:0.5rem">←</button>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:600;margin-bottom:0.5rem">Export-Liste (<span id="exportCount">0</span>)</div>
+          <div id="exportList" class="search-results" style="min-height:200px"></div>
+        </div>
+      </div>
+      <div class="export-options" id="exportOptions">
+        <div id="optHier" class="export-option selected" onclick="selectFormat('hierarchical')">Hierarchisch</div>
+        <div id="optFlat" class="export-option" onclick="selectFormat('flat')">Flache Liste</div>
+      </div>
+      <button id="exportBtn" class="button primary" style="width:100%;margin-top:1rem" onclick="doExport()">Multi-Export</button>
+    </div>
+  </div>
+
+  <!-- HIDDEN FILE INPUT -->
+  <input type="file" id="fileInput" accept=".json" style="display:none">
+
+<script>
+(()=>{
+  /* === CONSTS === */
+  const PAD=60,R=20,LH=16,MAX_CHARS=22,BASE_H=50,V_GAP=20;let COL_W=350,scale=1;
+
+  /* === STATE === */
+  let root=null,sel=null,expanded=new Set(),path=new Set();const pos=new Map();let selectedSearchNode=null,exportList=new Set(),format='hierarchical',lastUserZoomTime=0;
+
+  /* === DOM === */
+  const svg=document.getElementById('chartSvg');const container=document.getElementById('chartContainer');
+
+  /* === UTIL === */
+  const easeInOutCubic=t=>t<0.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;
+  const wrap=(txt,m)=>{const w=txt.split(' '),lines=[];let l='';w.forEach(word=>{if((l+' '+word).trim().length>m){lines.push(l.trim());l=word}else l+=(l?' ':'')+word});lines.push(l.trim());return lines};
+  const count=n=>1+(n.children?.reduce((s,c)=>s+count(c),0)||0);
+  const allNodes=(n=root,arr=[])=>{arr.push(n);n.children?.forEach(c=>allNodes(c,arr));return arr};
+
+  /* === FILE === */
+  window.loadFile=()=>document.getElementById('fileInput').click();
+  document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=ev=>{try{init(JSON.parse(ev.target.result))}catch{alert('Ungültige JSON')}};fr.readAsText(f)});
+
+  /* === DEMO === */
+  const demo={id:'root',name:'CEO – Very long title needs wrapping',person:'Alice',children:[{id:'s1',name:'Head of Strategy & Transformation',person:'Bob',children:[{id:'s1a',name:'Strategic Org Dev',person:'Carol',children:[]},{id:'s1b',name:'Org Design & Change',person:'Dan',children:[]}]},{id:'it',name:'Chief Digital & Tech Officer',person:'Eve',children:[]}]};
+  document.addEventListener('DOMContentLoaded',()=>init(demo));
+
+  /* === INIT === */
+  function init(data){root=data;expanded.clear();sel=null;expanded.add(root.id);document.getElementById('nodeCount').textContent=count(root);render();centerView();}
+
+  /* === LAYOUT === */
+  function layout(node,x=PAD,y=PAD,arr=[]){const lines=wrap(node.name,MAX_CHARS);const height=BASE_H+(lines.length-1)*LH;const p={id:node.id,x,y,node,lines,height};arr.push(p);pos.set(node.id,p);
+    COL_W=Math.max(COL_W,Math.max(...lines.map(l=>l.length))*7+200);
+    if(expanded.has(node.id)&&node.children?.length){let cy=y-(sum(node.children)/2)+(heightOf(node.children[0])/2);node.children.forEach(c=>{layout(c,x+COL_W,cy,arr);cy+=heightOf(c)+V_GAP})}
+    return arr;
+  }
+  const sum=arr=>arr.reduce((s,c)=>s+heightOf(c)+V_GAP,0)-V_GAP;
+  const heightOf=n=>pos.get(n.id)?.height||BASE_H;
+
+  function normalize(arr){const minX=Math.min(...arr.map(p=>p.x)),minY=Math.min(...arr.map(p=>p.y));const dx=Math.max(PAD-minX,0),dy=Math.max(PAD-minY,0);if(dx||dy){arr.forEach(p=>{p.x+=dx;p.y+=dy});pos.forEach(p=>{p.x+=dx;p.y+=dy})}}
+
+  /* === RENDER === */
+  function render(){svg.innerHTML='';if(!root)return;pos.clear();COL_W=350;const posArr=layout(root);normalize(posArr);updatePath();const w=Math.max(...posArr.map(p=>p.x))+COL_W,h=Math.max(...posArr.map(p=>p.y))+PAD;svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox',`0 0 ${w} ${h}`);const ns='http://www.w3.org/2000/svg',gE=document.createElementNS(ns,'g'),gN=document.createElementNS(ns,'g');svg.append(gE,gN);posArr.forEach(p=>expanded.has(p.id)&&p.node.children?.forEach(c=>drawEdge(gE,p,pos.get(c.id))));posArr.forEach(p=>drawNode(gN,p));updateScrollBounds();ensureVisible();}
+
+  function updatePath(){path.clear();if(!sel)return;let p=pos.get(sel);while(p){path.add(p.id);p=findParent(p.id)}}
+  const findParent=id=>{for(const p of pos.values()){if(p.node.children?.some(c=>c.id===id))return p}return null};
+  const collapseSiblings=id=>{const parent=findParent(id);if(parent){parent.node.children?.forEach(sibling=>{if(sibling.id!==id&&expanded.has(sibling.id)){collapseNodeAndChildren(sibling.id)}})}};
+  const collapseNodeAndChildren=id=>{expanded.delete(id);const node=allNodes().find(n=>n.id===id);node?.children?.forEach(child=>collapseNodeAndChildren(child.id))};
+
+  /* === DRAW === */
+  function drawEdge(g,parent,child){if(!child)return;const ns='http://www.w3.org/2000/svg',edge=document.createElementNS(ns,'path');const x1=parent.x+R,y1=parent.y,x2=child.x-R,y2=child.y,m=(x1+x2)/2;edge.setAttribute('d',`M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}`);edge.setAttribute('class','connection'+(path.has(parent.id)&&path.has(child.id)?'':' inactive'));g.appendChild(edge)}
+
+  function drawNode(g,p){const ns='http://www.w3.org/2000/svg',grp=document.createElementNS(ns,'g');grp.setAttribute('transform',`translate(${p.x},${p.y})`);
+    const circ=document.createElementNS(ns,'circle');circ.setAttribute('r',R);circ.setAttribute('class','node-circle'+(sel===p.id?' active':path.has(p.id)?' in-path':''));grp.appendChild(circ);
+    const txt=document.createElementNS(ns,'text');txt.setAttribute('x',R+10);txt.setAttribute('y',-(p.lines.length-1)*LH/2);txt.setAttribute('class','node-text'+(!path.has(p.id)&&sel!==p.id?' inactive':''));p.lines.forEach((l,i)=>{const ts=document.createElementNS(ns,'tspan');ts.setAttribute('x',R+10);ts.setAttribute('dy',i?LH:0);ts.textContent=l;txt.appendChild(ts)});grp.appendChild(txt);
+    if(p.node.person){const pers=document.createElementNS(ns,'text');pers.setAttribute('x',R+10);pers.setAttribute('y',p.lines.length*LH/2+12);pers.setAttribute('class','node-person');pers.textContent=p.node.person;grp.appendChild(pers)}
+    if(p.node.children?.length){const indicator=document.createElementNS(ns,'circle');indicator.setAttribute('cx',0);indicator.setAttribute('cy',0);indicator.setAttribute('r',24);indicator.setAttribute('class','expand-indicator'+(expanded.has(p.id)?'':' collapsed'));grp.appendChild(indicator)}
+    grp.onclick=()=>{if(p.node.children?.length){if(expanded.has(p.id)){const wasExpanded=true;collapseNodeAndChildren(p.id);sel=p.id;render();if(wasExpanded)checkAutoZoomIn(p.id)}else{collapseSiblings(p.id);expanded.add(p.id);sel=p.id;render()}}else{collapseSiblings(p.id);sel=p.id;render()}};
+    g.appendChild(grp)}
+
+
+
+  /* === VIEWPORT HANDLING === */
+  function ensureVisible(){if(!sel)return;const p=pos.get(sel);if(!p)return;if(!expanded.has(p.id)||!p.node.children?.length)return;const directChildren=p.node.children.map(child=>pos.get(child.id)).filter(Boolean);if(directChildren.length===0)return;if(Date.now()-lastUserZoomTime<2000)return;let currentScale=scale;let bounds=getNodesBounds([p,...directChildren]);const vp=getViewportBounds();const margin=80;const maxZoomOut=0.4;while(currentScale>=maxZoomOut){const scaledBounds={...bounds,left:bounds.left*currentScale/scale,right:bounds.right*currentScale/scale,top:bounds.top*currentScale/scale,bottom:bounds.bottom*currentScale/scale,width:bounds.width*currentScale/scale,height:bounds.height*currentScale/scale};if(scaledBounds.width<=vp.width-2*margin&&scaledBounds.height<=vp.height-2*margin){if(currentScale!==scale){animateZoom(currentScale);setTimeout(()=>ensureVisibleAfterZoom([p,...directChildren]),300)}else{ensureVisibleAfterZoom([p,...directChildren])}return}currentScale-=0.1}ensureVisibleAfterZoom([p,...directChildren])}
+  function ensureVisibleAfterZoom(nodes){const bounds=getNodesBounds(nodes);const vp=getViewportBounds();const margin=80;const needsAdjust=bounds.left<vp.left+margin||bounds.right>vp.right-margin||bounds.top<vp.top+margin||bounds.bottom>vp.bottom-margin;if(needsAdjust){const centerX=bounds.left+bounds.width/2;const centerY=bounds.top+bounds.height/2;const targetLeft=centerX-vp.width/2;const targetTop=centerY-vp.height/2;smoothScrollTo(targetLeft,targetTop)}}
+  function animateZoom(targetScale){const startScale=scale;const duration=300;const startTime=performance.now();function animate(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);const easeProgress=easeInOutCubic(progress);scale=startScale+(targetScale-startScale)*easeProgress;svg.style.transform=`scale(${scale})`;updateScrollBounds();if(progress<1)requestAnimationFrame(animate);}requestAnimationFrame(animate)}
+  function checkAutoZoomIn(collapsedNodeId){if(Date.now()-lastUserZoomTime<2000)return;const p=pos.get(collapsedNodeId);if(!p||!p.node.children?.length)return;const childCount=p.node.children.length;const hadManyChildren=childCount>=3;if(!hadManyChildren)return;const vp=getViewportBounds();const currentVisibleNodes=Array.from(pos.values()).filter(node=>{const x=node.x*scale;const y=node.y*scale;return x>=vp.left-100&&x<=vp.right+100&&y>=vp.top-100&&y<=vp.bottom+100});const density=currentVisibleNodes.length;const maxZoomIn=2;const targetScale=Math.min(maxZoomIn,scale*Math.min(1.3,1+childCount*0.1));if(targetScale>scale*1.1){setTimeout(()=>animateZoom(targetScale),200)}}
+
+  function getNodesBounds(nodes){const xs=nodes.map(n=>n.x*scale);const ys=nodes.map(n=>n.y*scale);return{left:Math.min(...xs)-R*scale,right:Math.max(...xs)+R*scale,top:Math.min(...ys)-R*scale,bottom:Math.max(...ys)+R*scale,width:Math.max(...xs)-Math.min(...xs)+2*R*scale,height:Math.max(...ys)-Math.min(...ys)+2*R*scale}}
+  function getViewportBounds(){return{left:container.scrollLeft,top:container.scrollTop,right:container.scrollLeft+container.clientWidth,bottom:container.scrollTop+container.clientHeight,width:container.clientWidth,height:container.clientHeight}}
+  function smoothScrollTo(left,top){const startLeft=container.scrollLeft;const startTop=container.scrollTop;const deltaLeft=left-startLeft;const deltaTop=top-startTop;const distance=Math.sqrt(deltaLeft*deltaLeft+deltaTop*deltaTop);const minDuration=400;const maxDuration=1200;const duration=Math.max(minDuration,Math.min(maxDuration,distance*2));const startTime=performance.now();function animate(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);const easeProgress=easeInOutCubic(progress);container.scrollLeft=startLeft+deltaLeft*easeProgress;container.scrollTop=startTop+deltaTop*easeProgress;if(progress<1)requestAnimationFrame(animate)}requestAnimationFrame(animate)}
+  function centerView(){container.scrollTo({left:(svg.clientWidth*scale-container.clientWidth)/2,top:(svg.clientHeight*scale-container.clientHeight)/2,behavior:'auto'})}
+  function updateScrollBounds(){const svgWidth=parseFloat(svg.getAttribute('width'))||1000;const svgHeight=parseFloat(svg.getAttribute('height'))||1000;const scaledWidth=svgWidth*scale;const scaledHeight=svgHeight*scale;const container=document.getElementById('chartContainer');const minWidth=Math.max(scaledWidth,container.clientWidth);const minHeight=Math.max(scaledHeight,container.clientHeight);svg.style.minWidth=minWidth+'px';svg.style.minHeight=minHeight+'px';document.getElementById('zoomLevel').textContent=Math.round(scale*100)}
+
+  /* === PAN & ZOOM === */
+  let isPan=false,startX=0,startY=0,sLeft=0,sTop=0;
+  container.addEventListener('mousedown',e=>{if(e.button!==0)return;isPan=true;container.style.cursor='grabbing';startX=e.pageX;startY=e.pageY;sLeft=container.scrollLeft;sTop=container.scrollTop});
+  document.addEventListener('mouseup',()=>{isPan=false;container.style.cursor='default'});
+  container.addEventListener('mousemove',e=>{if(!isPan)return;container.scrollLeft=sLeft-(e.pageX-startX);container.scrollTop=sTop-(e.pageY-startY)});
+  container.addEventListener('wheel',e=>{if(!e.ctrlKey)return;	e.preventDefault();const delta=e.deltaY>0?0.9:1.1;lastUserZoomTime=Date.now();scale=Math.min(Math.max(scale*delta,0.4),2);svg.style.transform=`scale(${scale})`;updateScrollBounds();},{passive:false});
+
+  /* === EXPORT MODAL === */
+  window.openExportModal=()=>{document.getElementById('exportModal').classList.add('open');document.getElementById('exportSearch').focus();selectedSearchNode=null;selectedExportNode=null;updateExportList()};
+  window.closeExportModal=()=>document.getElementById('exportModal').classList.remove('open');
+  const extractSortKey=name=>{const lastDash=name.lastIndexOf('-');return lastDash>-1?name.substring(0,lastDash).trim():name};
+  window.exportSearch=()=>{const q=document.getElementById('exportSearch').value.toLowerCase().trim();const res=document.getElementById('exportResults');if(q.length<2){res.innerHTML='';return;}const hits=allNodes().filter(n=>n.name.toLowerCase().includes(q)||n.person?.toLowerCase().includes(q));hits.sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));res.innerHTML='';hits.forEach(h=>{const d=document.createElement('div');d.className='search-result'+(selectedSearchNode?.id===h.id?' selected':'');d.innerHTML=`<div>${highlight(h.name,q)}</div>${h.person?`<div style='font-size:.8rem;color:var(--text-secondary)'>${highlight(h.person,q)}</div>`:''}`;d.onclick=()=>{selectedSearchNode=h;updateSearchSelection()};res.appendChild(d)})};
+  const highlight=(t,q)=>t.replace(new RegExp(q,'gi'),m=>`<span class='search-match'>${m}</span>`);
+  window.addToExportList=()=>{if(selectedSearchNode){exportList.add(selectedSearchNode);updateExportList();updateSearchSelection()}};
+  window.removeFromExportList=()=>{if(selectedExportNode){exportList.delete(selectedExportNode);updateExportList();updateExportSelection()}};
+  function updateSearchSelection(){Array.from(document.getElementById('exportResults').children).forEach(c=>c.classList.remove('selected'));if(selectedSearchNode){Array.from(document.getElementById('exportResults').children).forEach(c=>{if(c.textContent.includes(selectedSearchNode.name))c.classList.add('selected')})}}
+  function updateExportSelection(){Array.from(document.getElementById('exportList').children).forEach(c=>c.classList.remove('selected'));if(selectedExportNode){Array.from(document.getElementById('exportList').children).forEach(c=>{if(c.textContent.includes(selectedExportNode.name))c.classList.add('selected')})}}
+  function updateExportList(){const list=document.getElementById('exportList');const sortedList=Array.from(exportList).sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));list.innerHTML='';sortedList.forEach(node=>{const d=document.createElement('div');d.className='search-result';d.innerHTML=`<div>${node.name}</div>${node.person?`<div style='font-size:.8rem;color:var(--text-secondary)'>${node.person}</div>`:''}`;d.onclick=()=>{selectedExportNode=node;updateExportSelection()};list.appendChild(d)});document.getElementById('exportCount').textContent=exportList.size}
+  let selectedExportNode=null;
+  window.selectFormat=f=>{format=f;document.getElementById('optHier').classList.toggle('selected',f==='hierarchical');document.getElementById('optFlat').classList.toggle('selected',f==='flat')}
+
+  window.doExport=()=>{if(exportList.size===0)return;const sortedList=Array.from(exportList).sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));const sections=sortedList.map(node=>format==='hierarchical'?mdHier(node):mdFlat(node));const md=sections.join('\n\n---\n\n');navigator.clipboard.writeText(md);const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`multi_export_${Date.now()}.md`;a.click();URL.revokeObjectURL(url);closeExportModal()};
+  const mdHier=(n,l=0)=>`${'  '.repeat(l)}- **${n.name}**${n.person?` - ${n.person}`:''}
+${n.children?.map(c=>mdHier(c,l+1)).join('')}`;
+  const mdFlat=n=>{let i=1,md='';const walk=x=>{md+=`${i++}. **${x.name}**${x.person?` - ${x.person}`:''}
+`;x.children?.forEach(walk)};walk(n);return md};
+
+  /* === PUBLIC BUTTONS === */
+  window.collapseSelected=()=>{if(!root)return;const allNodeIds=allNodes().map(n=>n.id);allNodeIds.forEach(id=>expanded.delete(id));expanded.add(root.id);render()};
+})();
+</script>
+</body>
+</html>
