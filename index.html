@@ -3,52 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DB Org Chart – Zoom & Export</title>
+  <title>Organizational Hierarchy Viewer</title>
   <style>
     /* === RESET & THEME === */
     *{margin:0;padding:0;box-sizing:border-box}
-    :root{--db-red:#EC0016;--db-blue:#0066CC;--db-blue-dark:#003D7A;--db-gray:#646973;--db-gray-light:#DADADA;--db-gray-lighter:#F0F3F5;--text-primary:#282D37;--text-secondary:#646973;--background:#FFF;--border:#DADADA}
-    body{font-family:"DB Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--background);color:var(--text-primary);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+    :root{--primary-color:#0066CC;--primary-dark:#003D7A;--secondary-color:#646973;--border-light:#DADADA;--background-light:#F0F3F5;--text-primary:#282D37;--text-secondary:#646973;--background:#FFF;--border:#DADADA}
+    body{font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--background);color:var(--text-primary);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
     /* === HEADER === */
     .header{background:var(--background);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 4px rgba(0,0,0,.05)}
-    .logo{font-size:1.75rem;font-weight:700;color:var(--db-red);margin-right:2rem}
+    .logo{display:flex;align-items:center;font-size:1.75rem;font-weight:700;color:var(--primary-color);margin-right:2rem}
     .button{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;font-size:.875rem;font-weight:500;border:1px solid var(--border);border-radius:4px;background:var(--background);cursor:pointer;color:var(--text-primary);transition:.2s;caret-color:transparent}
     .button:focus{outline:none}
     .button svg{stroke:currentColor}
-    .button:hover{background:var(--db-gray-lighter);border-color:var(--db-blue);color:var(--db-blue)}
-    .button.primary{background:var(--db-blue);border-color:var(--db-blue);color:#fff}
+    .button:hover{background:var(--background-light);border-color:var(--primary-color);color:var(--primary-color)}
+    .button.primary{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
     .button.primary:focus{outline:none;caret-color:transparent}
-    .button.primary:hover{background:var(--db-blue-dark);border-color:var(--db-blue-dark)}
+    .button.primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
     .stats{margin-left:auto;font-size:.875rem;color:var(--text-secondary);cursor:default;user-select:none}
 
     /* === CANVAS === */
-    .container{flex:1;position:relative;overflow:hidden;background:var(--db-gray-lighter)}
+    .container{flex:1;position:relative;overflow:hidden;background:var(--background-light)}
     .chart-container{position:absolute;inset:0;overflow:auto;padding:5rem;cursor:default}
-    .chart-container.drag-over{border:3px dashed var(--db-blue);background:rgba(0,102,204,0.1)}
-    .drop-overlay{position:absolute;inset:0;background:rgba(0,102,204,0.2);display:none;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--db-blue);z-index:50}
+    .chart-container.drag-over{border:3px dashed var(--primary-color);background:rgba(0,102,204,0.1)}
+    .drop-overlay{position:absolute;inset:0;background:rgba(0,102,204,0.2);display:none;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--primary-color);z-index:50}
     .drop-overlay.visible{display:flex}
     .chart-svg{min-width:100%;min-height:100%;transform-origin:0 0}
 
     /* === NODES === */
-    .node-circle{fill:#fff;stroke:var(--db-gray-light);stroke-width:2;transition:.3s}
-    .node-circle.active:not(.node-morphing),.node-circle.in-path:not(.node-morphing){fill:var(--db-blue);stroke:var(--db-blue)}
-    .node-circle.node-morphing{stroke:var(--db-blue)}
-    .node-circle:hover{stroke:var(--db-blue);stroke-width:3}
+    .node-circle{fill:#fff;stroke:var(--border-light);stroke-width:2;transition:.3s}
+    .node-circle.active:not(.node-morphing),.node-circle.in-path:not(.node-morphing){fill:var(--primary-color);stroke:var(--primary-color)}
+    .node-circle.node-morphing{stroke:var(--primary-color)}
+    .node-circle:hover{stroke:var(--primary-color);stroke-width:3}
     .node-text{font-size:13px;fill:var(--text-primary);font-weight:500;white-space:pre;user-select:none;-webkit-user-select:none;-moz-user-select:none}
     .node-text.inactive{fill:var(--text-secondary)}
     .node-person{font-size:12px;fill:var(--text-secondary);user-select:none;-webkit-user-select:none;-moz-user-select:none}
-    .expand-indicator{fill:none;stroke:var(--db-blue);stroke-width:2;stroke-dasharray:3,2;opacity:0.7}
-    .expand-indicator.collapsed{stroke:var(--db-gray);stroke-dasharray:2,3;opacity:0.5}
-    .connection{fill:none;stroke:var(--db-blue);stroke-width:2}
-    .connection.inactive{stroke:var(--db-gray-light);stroke-width:1}
-    .connection.animating{stroke:var(--db-blue);stroke-width:3;stroke-dasharray:1000;stroke-dashoffset:1000;animation:drawLine 0.8s ease-in-out forwards}
-    .connection.animated{stroke:var(--db-blue);stroke-width:3;stroke-dasharray:none}
+    .expand-indicator{fill:none;stroke:var(--primary-color);stroke-width:2;stroke-dasharray:3,2;opacity:0.7}
+    .expand-indicator.collapsed{stroke:var(--secondary-color);stroke-dasharray:2,3;opacity:0.5}
+    .connection{fill:none;stroke:var(--primary-color);stroke-width:2}
+    .connection.inactive{stroke:var(--border-light);stroke-width:1}
+    .connection.animating{stroke:var(--primary-color);stroke-width:3;stroke-dasharray:1000;stroke-dashoffset:1000;animation:drawLine 0.8s ease-in-out forwards}
+    .connection.animated{stroke:var(--primary-color);stroke-width:3;stroke-dasharray:none}
 
     @keyframes drawLine{to{stroke-dashoffset:0}}
     @keyframes colorMorph{
       0% { fill: #ffffff; }
-      100% { fill: var(--db-blue); }
+      100% { fill: var(--primary-color); }
     }
     .node-morphing{animation:colorMorph 0.4s ease-in-out forwards}
 
@@ -66,19 +66,45 @@
     .search-results{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px}
     .search-result{padding:.75rem;border-bottom:1px solid var(--border);cursor:pointer;transition:.2s}
     .search-result:last-child{border-bottom:none}
-    .search-result:hover{background:var(--db-gray-lighter)}
-    .search-result.selected{background:var(--db-blue);color:#fff}
-    .search-match{font-weight:600;color:var(--db-blue)}
+    .search-result:hover{background:var(--background-light)}
+    .search-result.selected{background:var(--primary-color);color:#fff}
+    .search-match{font-weight:600;color:var(--primary-color)}
     .export-options{display:flex;gap:1rem;margin-top:.5rem}
     .export-option{flex:1;padding:.75rem;border:2px solid var(--border);border-radius:4px;text-align:center;cursor:pointer;transition:.2s}
-    .export-option:hover{border-color:var(--db-blue);background:var(--db-gray-lighter)}
-    .export-option.selected{border-color:var(--db-blue);background:var(--db-blue);color:#fff}
+    .export-option:hover{border-color:var(--primary-color);background:var(--background-light)}
+    .export-option.selected{border-color:var(--primary-color);background:var(--primary-color);color:#fff}
   </style>
 </head>
 <body>
   <!-- HEADER -->
   <div class="header">
-    <div class="logo">DB</div>
+    <div class="logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Organization Tree Icon -->
+        <circle cx="16" cy="6" r="3" fill="currentColor"/>
+        <rect x="14" y="9" width="4" height="6" fill="currentColor"/>
+        <circle cx="8" cy="20" r="2.5" fill="currentColor"/>
+        <circle cx="16" cy="20" r="2.5" fill="currentColor"/>
+        <circle cx="24" cy="20" r="2.5" fill="currentColor"/>
+        <rect x="7" y="15" width="3" height="5" fill="currentColor"/>
+        <rect x="15" y="15" width="3" height="5" fill="currentColor"/>
+        <rect x="23" y="15" width="3" height="5" fill="currentColor"/>
+        <!-- Connection lines -->
+        <rect x="8" y="15" width="16" height="1" fill="currentColor"/>
+        <rect x="15.5" y="15" width="1" height="3" fill="currentColor"/>
+        <!-- Sub-nodes -->
+        <circle cx="5" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
+        <circle cx="11" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
+        <circle cx="21" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
+        <circle cx="27" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
+        <rect x="4.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
+        <rect x="10.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
+        <rect x="20.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
+        <rect x="26.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
+        <rect x="5" y="22" width="7" height="0.5" fill="currentColor" opacity="0.7"/>
+        <rect x="21" y="22" width="7" height="0.5" fill="currentColor" opacity="0.7"/>
+      </svg>
+    </div>
     <button class="button" onclick="loadFile()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Datei laden
@@ -172,28 +198,95 @@
   function init(data){root=data;expanded.clear();path.clear();sel=null;pos.clear();expanded.add(root.id);lastUserZoomTime=0;scale=1;svg.style.transform='scale(1)';document.getElementById('nodeCount').textContent=count(root);updateScrollBounds();render();centerView();}
 
   /* === LAYOUT === */
-  function layout(node,x=PAD,y=PAD,arr=[]){const lines=wrap(node.name,MAX_CHARS);const height=BASE_H+(lines.length-1)*LH;const p={id:node.id,x,y,node,lines,height};arr.push(p);pos.set(node.id,p);
+  function layout(node,x=PAD,y=PAD,arr=[]){
+    const lines=wrap(node.name,MAX_CHARS);
+    const height=BASE_H+(lines.length-1)*LH;
+    const p={id:node.id,x,y,node,lines,height};
+    arr.push(p);
+    pos.set(node.id,p);
     COL_W=Math.max(COL_W,Math.max(...lines.map(l=>l.length))*7+200);
-    if(expanded.has(node.id)&&node.children?.length){let cy=y-(sum(node.children)/2)+(heightOf(node.children[0])/2);node.children.forEach(c=>{layout(c,x+COL_W,cy,arr);cy+=heightOf(c)+V_GAP})}
+    
+    if(expanded.has(node.id)&&node.children?.length){
+      // 🚀 OPTIMIERT: Pre-calculate alle Child-Heights in einem Batch - O(n) statt O(n²)
+      const childHeights = node.children.map(c => {
+        const childLines = wrap(c.name, MAX_CHARS);
+        return BASE_H + (childLines.length - 1) * LH;
+      });
+      
+      // Berechne total height und start position
+      const totalHeight = childHeights.reduce((sum, h) => sum + h + V_GAP, 0) - V_GAP;
+      let cy = y - (totalHeight / 2) + (childHeights[0] / 2);
+      
+      // Layout Children mit pre-calculated heights
+      node.children.forEach((c, i) => {
+        layout(c, x + COL_W, cy, arr);
+        cy += childHeights[i] + V_GAP;
+      });
+    }
     return arr;
   }
-  const sum=arr=>arr.reduce((s,c)=>s+heightOf(c)+V_GAP,0)-V_GAP;
-  const heightOf=n=>pos.get(n.id)?.height||BASE_H;
+  // 🚀 REMOVED: sum() und heightOf() - ersetzt durch O(n) batch calculation
+  
+  /* === PHASE 2: DOM-ELEMENT-CACHE für O(1) Performance === */
+  const domElementCache = new Map(); // Cache für instant DOM-Lookups
 
   function normalize(arr){const minX=Math.min(...arr.map(p=>p.x)),minY=Math.min(...arr.map(p=>p.y));const dx=Math.max(PAD-minX,0),dy=Math.max(PAD-minY,0);if(dx||dy){arr.forEach(p=>{p.x+=dx;p.y+=dy});pos.forEach(p=>{p.x+=dx;p.y+=dy})}}
 
   /* === RENDER === */
-  function render(){svg.innerHTML='';if(!root)return;pos.clear();COL_W=350;const posArr=layout(root);normalize(posArr);updatePath();const w=Math.max(...posArr.map(p=>p.x))+COL_W,h=Math.max(...posArr.map(p=>p.y))+PAD;svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox',`0 0 ${w} ${h}`);const ns='http://www.w3.org/2000/svg',gE=document.createElementNS(ns,'g'),gN=document.createElementNS(ns,'g');svg.append(gE,gN);posArr.forEach(p=>expanded.has(p.id)&&p.node.children?.forEach(c=>drawEdge(gE,p,pos.get(c.id))));posArr.forEach(p=>drawNode(gN,p));updateScrollBounds();ensureVisible();}
+  function render(){
+    // 🚀 PHASE 2: Cache leeren bei fullRender
+    domElementCache.clear();
+    svg.innerHTML='';
+    if(!root)return;
+    pos.clear();
+    COL_W=350;
+    
+    const posArr=layout(root);
+    normalize(posArr);
+    updatePath();
+    
+    const w=Math.max(...posArr.map(p=>p.x))+COL_W,h=Math.max(...posArr.map(p=>p.y))+PAD;
+    svg.setAttribute('width',w);
+    svg.setAttribute('height',h);
+    svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+    
+    const ns='http://www.w3.org/2000/svg',gE=document.createElementNS(ns,'g'),gN=document.createElementNS(ns,'g');
+    svg.append(gE,gN);
+    
+    posArr.forEach(p=>expanded.has(p.id)&&p.node.children?.forEach(c=>drawEdge(gE,p,pos.get(c.id))));
+    posArr.forEach(p=>drawNode(gN,p));
+    
+    updateScrollBounds();
+    ensureVisible();
+  }
 
   function updatePath(){path.clear();if(!sel)return;let p=pos.get(sel);while(p){path.add(p.id);p=findParent(p.id)}}
   const findParent=id=>{for(const p of pos.values()){if(p.node.children?.some(c=>c.id===id))return p}return null};
   const collapseSiblings=id=>{const parent=findParent(id);if(parent){parent.node.children?.forEach(sibling=>{if(sibling.id!==id&&expanded.has(sibling.id)){collapseNodeAndChildren(sibling.id)}})}};
-  const collapseNodeAndChildren=id=>{expanded.delete(id);const node=allNodes().find(n=>n.id===id);node?.children?.forEach(child=>collapseNodeAndChildren(child.id))};
+  const collapseNodeAndChildren=id=>{expanded.delete(id);const node=pos.get(id)?.node;node?.children?.forEach(child=>collapseNodeAndChildren(child.id))};
 
   /* === DRAW === */
-  function drawEdge(g,parent,child){if(!child)return;const ns='http://www.w3.org/2000/svg',edge=document.createElementNS(ns,'path');const x1=parent.x+R,y1=parent.y,x2=child.x-R,y2=child.y,m=(x1+x2)/2;edge.setAttribute('d',`M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}`);edge.setAttribute('class','connection'+(path.has(parent.id)&&path.has(child.id)?'':' inactive'));g.appendChild(edge)}
+  function drawEdge(g,parent,child){
+    if(!child)return;
+    const ns='http://www.w3.org/2000/svg',edge=document.createElementNS(ns,'path');
+    const x1=parent.x+R,y1=parent.y,x2=child.x-R,y2=child.y,m=(x1+x2)/2;
+    edge.setAttribute('d',`M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}`);
+    edge.setAttribute('class','connection'+(path.has(parent.id)&&path.has(child.id)?'':' inactive'));
+    
+    // 🚀 PHASE 2: Eindeutige ID für instant lookup  
+    edge.id = `conn-${parent.id}-${child.id}`;
+    domElementCache.set(`conn-${parent.id}-${child.id}`, edge);
+    
+    g.appendChild(edge);
+  }
 
-  function drawNode(g,p){const ns='http://www.w3.org/2000/svg',grp=document.createElementNS(ns,'g');grp.setAttribute('transform',`translate(${p.x},${p.y})`);
+  function drawNode(g,p){
+    const ns='http://www.w3.org/2000/svg',grp=document.createElementNS(ns,'g');
+    grp.setAttribute('transform',`translate(${p.x},${p.y})`);
+    
+    // 🚀 PHASE 2: Eindeutige ID für instant lookup
+    grp.id = `node-${p.id}`;
+    domElementCache.set(`node-${p.id}`, grp);
     const circ=document.createElementNS(ns,'circle');circ.setAttribute('r',R);circ.setAttribute('class','node-circle'+(sel===p.id?' active':path.has(p.id)?' in-path':''));grp.appendChild(circ);
     const txt=document.createElementNS(ns,'text');txt.setAttribute('x',R+10);txt.setAttribute('y',-(p.lines.length-1)*LH/2);txt.setAttribute('class','node-text'+(!path.has(p.id)&&sel!==p.id?' inactive':''));p.lines.forEach((l,i)=>{const ts=document.createElementNS(ns,'tspan');ts.setAttribute('x',R+10);ts.setAttribute('dy',i?LH:0);ts.textContent=l;txt.appendChild(ts)});grp.appendChild(txt);
     if(p.node.person){const pers=document.createElementNS(ns,'text');pers.setAttribute('x',R+10);pers.setAttribute('y',p.lines.length*LH/2+12);pers.setAttribute('class','node-person');pers.textContent=p.node.person;grp.appendChild(pers)}
@@ -208,8 +301,56 @@
   function ensureVisibleAfterZoom(nodes){const bounds=getNodesBounds(nodes);const vp=getViewportBounds();const margin=80;const needsAdjust=bounds.left<vp.left+margin||bounds.right>vp.right-margin||bounds.top<vp.top+margin||bounds.bottom>vp.bottom-margin;if(needsAdjust){const centerX=bounds.left+bounds.width/2;const centerY=bounds.top+bounds.height/2;const targetLeft=centerX-vp.width/2;const targetTop=centerY-vp.height/2;smoothScrollTo(targetLeft,targetTop)}}
   function animateZoom(targetScale){const startScale=scale;const duration=300;const startTime=performance.now();function animate(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);const easeProgress=easeInOutCubic(progress);scale=startScale+(targetScale-startScale)*easeProgress;svg.style.transform=`scale(${scale})`;updateScrollBounds();if(progress<1)requestAnimationFrame(animate);}requestAnimationFrame(animate)}
   function checkAutoZoomIn(collapsedNodeId){if(Date.now()-lastUserZoomTime<2000)return;const p=pos.get(collapsedNodeId);if(!p||!p.node.children?.length)return;const childCount=p.node.children.length;const hadManyChildren=childCount>=3;if(!hadManyChildren)return;const vp=getViewportBounds();const currentVisibleNodes=Array.from(pos.values()).filter(node=>{const x=node.x*scale;const y=node.y*scale;return x>=vp.left-100&&x<=vp.right+100&&y>=vp.top-100&&y<=vp.bottom+100});const density=currentVisibleNodes.length;const maxZoomIn=2;const targetScale=Math.min(maxZoomIn,scale*Math.min(1.3,1+childCount*0.1));if(targetScale>scale*1.1){setTimeout(()=>animateZoom(targetScale),200)}}
-  function animateToClickedNode(nodeId){setTimeout(()=>{const nodePos=pos.get(nodeId);if(!nodePos)return;const parentPos=findParent(nodeId);if(!parentPos)return;const connectionSelector=`path[d*="M ${parentPos.x+20} ${parentPos.y}"][d*="${nodePos.x-20} ${nodePos.y}"]`;const nodeGroup=document.querySelector(`g[transform*="translate(${nodePos.x},${nodePos.y})"]`);const connection=document.querySelector(connectionSelector);if(connection){connection.classList.add('animating');setTimeout(()=>{connection.classList.remove('animating');connection.classList.add('animated')},800)}if(nodeGroup){setTimeout(()=>createColorMorphEffect(nodeGroup, nodePos),800)}},100)}
-  function resetSisterNodes(nodeId){const parentPos=findParent(nodeId);if(!parentPos)return;parentPos.node.children?.forEach(sibling=>{if(sibling.id!==nodeId){const siblingPos=pos.get(sibling.id);if(!siblingPos)return;const siblingGroup=document.querySelector(`g[transform*="translate(${siblingPos.x},${siblingPos.y})"]`);if(siblingGroup){const siblingCircle=siblingGroup.querySelector('circle');if(siblingCircle){siblingCircle.style.fill='#ffffff';siblingCircle.style.stroke='var(--db-gray-light)';siblingCircle.classList.remove('node-morphing')}}const siblingConnection=document.querySelector(`path[d*="M ${parentPos.x+20} ${parentPos.y}"][d*="${siblingPos.x-20} ${siblingPos.y}"]`);if(siblingConnection){siblingConnection.classList.remove('animating','animated');siblingConnection.style.stroke='var(--db-gray-light)';siblingConnection.style.strokeWidth='1'}}})}
+  function animateToClickedNode(nodeId){
+    setTimeout(()=>{
+      const nodePos=pos.get(nodeId);
+      if(!nodePos)return;
+      const parentPos=findParent(nodeId);
+      if(!parentPos)return;
+      
+      // 🚀 PHASE 2: getElementById statt querySelector - O(1) statt O(n)
+      const nodeGroup = domElementCache.get(`node-${nodeId}`);
+      const connection = domElementCache.get(`conn-${parentPos.id}-${nodeId}`);
+      
+      if(connection){
+        connection.classList.add('animating');
+        setTimeout(()=>{
+          connection.classList.remove('animating');
+          connection.classList.add('animated');
+        },800);
+      }
+      
+      if(nodeGroup){
+        setTimeout(()=>createColorMorphEffect(nodeGroup, nodePos),800);
+      }
+    },100);
+  }
+  function resetSisterNodes(nodeId){
+    const parentPos=findParent(nodeId);
+    if(!parentPos)return;
+    
+    parentPos.node.children?.forEach(sibling=>{
+      if(sibling.id!==nodeId){
+        // 🚀 PHASE 2: Cache-Lookup statt querySelector - O(1) statt O(n)
+        const siblingGroup = domElementCache.get(`node-${sibling.id}`);
+        if(siblingGroup){
+          const siblingCircle = siblingGroup.querySelector('circle');
+          if(siblingCircle){
+            siblingCircle.style.fill='#ffffff';
+            siblingCircle.style.stroke='var(--border-light)';
+            siblingCircle.classList.remove('node-morphing');
+          }
+        }
+        
+        const siblingConnection = domElementCache.get(`conn-${parentPos.id}-${sibling.id}`);
+        if(siblingConnection){
+          siblingConnection.classList.remove('animating','animated');
+          siblingConnection.style.stroke='var(--border-light)';
+          siblingConnection.style.strokeWidth='1';
+        }
+      }
+    });
+  }
   function createColorMorphEffect(nodeGroup, nodePos){const originalCircle=nodeGroup.querySelector('circle');if(!originalCircle)return;originalCircle.classList.add('node-morphing');setTimeout(()=>{originalCircle.classList.remove('node-morphing')},400)}
 
   function getNodesBounds(nodes){const xs=nodes.map(n=>n.x*scale);const ys=nodes.map(n=>n.y*scale);return{left:Math.min(...xs)-R*scale,right:Math.max(...xs)+R*scale,top:Math.min(...ys)-R*scale,bottom:Math.max(...ys)+R*scale,width:Math.max(...xs)-Math.min(...xs)+2*R*scale,height:Math.max(...ys)-Math.min(...ys)+2*R*scale}}
