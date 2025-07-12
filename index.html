@@ -1362,7 +1362,8 @@
           let bounds = getNodesBounds([p, ...directChildren]);
           const vp = getViewportBounds();
           const margin = 80;
-          const maxZoomOut = 0.4;
+          const maxZoomOut = Math.max(0.6, scale * 0.7); // Weniger aggressives Rauszoomen
+
           while (currentScale >= maxZoomOut) {
             const scaledBounds = {
               ...bounds,
@@ -1388,22 +1389,41 @@
               }
               return;
             }
-            currentScale -= 0.1;
+            currentScale -= 0.05; // Kleinere Schritte für präziseres Zooming
           }
-          ensureVisibleAfterZoom([p, ...directChildren]);
+
+          // Fallback: Wenn gar nichts passt, zentriere wenigstens auf aktiven Node
+          ensureVisibleAfterZoom([p]);
         }
         function ensureVisibleAfterZoom(nodes) {
           const bounds = getNodesBounds(nodes);
           const vp = getViewportBounds();
           const margin = 80;
+
+          // Always center on the active node (first in array)
+          const activeNode = nodes[0];
+          const activeNodeX = activeNode.x * scale;
+          const activeNodeY = activeNode.y * scale;
+
+          // Check if active node is visible
+          const activeNodeVisible =
+            activeNodeX >= vp.left + margin &&
+            activeNodeX <= vp.right - margin &&
+            activeNodeY >= vp.top + margin &&
+            activeNodeY <= vp.bottom - margin;
+
+          // Always adjust if active node is not visible, or if bounds don't fit
           const needsAdjust =
+            !activeNodeVisible ||
             bounds.left < vp.left + margin ||
             bounds.right > vp.right - margin ||
             bounds.top < vp.top + margin ||
             bounds.bottom > vp.bottom - margin;
+
           if (needsAdjust) {
-            const centerX = bounds.left + bounds.width / 2;
-            const centerY = bounds.top + bounds.height / 2;
+            // Prioritize centering on active node
+            const centerX = activeNodeX;
+            const centerY = activeNodeY;
             const targetLeft = centerX - vp.width / 2;
             const targetTop = centerY - vp.height / 2;
             smoothScrollTo(targetLeft, targetTop);
@@ -1432,7 +1452,7 @@
           let bounds = getNodesBounds(nodesToShow);
           const vp = getViewportBounds();
           const margin = 80;
-          const maxZoomOut = 0.4;
+          const maxZoomOut = Math.max(0.6, scale * 0.7); // Weniger aggressives Rauszoomen
 
           while (currentScale >= maxZoomOut) {
             const scaledBounds = {
@@ -1457,9 +1477,11 @@
               }
               return;
             }
-            currentScale -= 0.1;
+            currentScale -= 0.05; // Kleinere Schritte für präziseres Zooming
           }
-          ensureVisibleAfterZoom(nodesToShow);
+
+          // Fallback: Wenn gar nichts passt, zentriere wenigstens auf aktiven Node
+          ensureVisibleAfterZoom([nodesToShow[0]]);
         }
         function animateZoom(targetScale) {
           const startScale = scale;
