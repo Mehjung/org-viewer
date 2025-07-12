@@ -281,6 +281,10 @@
         border: 1px solid var(--border);
         border-radius: 4px;
       }
+      .search-results:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
+      }
       .search-result {
         padding: 0.75rem;
         border-bottom: 1px solid var(--border);
@@ -301,6 +305,50 @@
         font-weight: 600;
         color: var(--primary-color);
       }
+
+      /* === EXPORT MODAL OVERRIDES === */
+      /* Export Modal - Remove cursor for labels and entries */
+      #exportModal label {
+        cursor: default !important;
+        user-select: none;
+      }
+
+      #exportModal .search-result,
+      #exportModal .search-result:hover,
+      #exportModal .search-result:active,
+      #exportModal .search-result:focus {
+        cursor: default !important;
+        user-select: none !important;
+      }
+
+      /* Export Modal - Remove cursor for modal title and all text elements */
+      #exportModal .modal-title {
+        cursor: default !important;
+        user-select: none;
+      }
+
+      /* Export Modal - Proper cursor for interactive elements */
+      #exportModal .export-option {
+        cursor: pointer !important;
+        user-select: none !important;
+      }
+
+      #exportModal button {
+        cursor: pointer !important;
+        user-select: none !important;
+      }
+
+      /* Export Modal - Remove text cursor from all text elements */
+      #exportModal * {
+        caret-color: transparent !important;
+      }
+
+      /* Export Modal - Ensure input field keeps text cursor */
+      #exportModal input {
+        cursor: text !important;
+        caret-color: auto !important;
+      }
+
       .export-options {
         display: flex;
         gap: 1rem;
@@ -606,7 +654,12 @@
               onkeydown="handleExportKeydown(event)"
               autocomplete="off"
             />
-            <div id="exportResults" class="search-results" tabindex="0"></div>
+            <div
+              id="exportResults"
+              class="search-results"
+              tabindex="0"
+              role="listbox"
+            ></div>
           </div>
           <div
             style="
@@ -648,6 +701,7 @@
               class="search-results"
               style="min-height: 200px"
               tabindex="0"
+              role="listbox"
             ></div>
           </div>
         </div>
@@ -1361,16 +1415,21 @@
           if (!nodeId) return;
           const p = pos.get(nodeId);
           if (!p) return;
-          if (!expanded.has(p.id) || !p.node.children?.length) return;
 
-          const directChildren = p.node.children
-            .map((child) => pos.get(child.id))
-            .filter(Boolean);
-          if (directChildren.length === 0) return;
+          // For search navigation: always zoom to node, even without children
+          let nodesToShow = [p];
+
+          // If node has children and is expanded, include them
+          if (expanded.has(p.id) && p.node.children?.length) {
+            const directChildren = p.node.children
+              .map((child) => pos.get(child.id))
+              .filter(Boolean);
+            nodesToShow = [p, ...directChildren];
+          }
 
           // Same logic as ensureVisible but without timing restrictions
           let currentScale = scale;
-          let bounds = getNodesBounds([p, ...directChildren]);
+          let bounds = getNodesBounds(nodesToShow);
           const vp = getViewportBounds();
           const margin = 80;
           const maxZoomOut = 0.4;
@@ -1392,18 +1451,15 @@
             ) {
               if (currentScale !== scale) {
                 animateZoom(currentScale);
-                setTimeout(
-                  () => ensureVisibleAfterZoom([p, ...directChildren]),
-                  300
-                );
+                setTimeout(() => ensureVisibleAfterZoom(nodesToShow), 300);
               } else {
-                ensureVisibleAfterZoom([p, ...directChildren]);
+                ensureVisibleAfterZoom(nodesToShow);
               }
               return;
             }
             currentScale -= 0.1;
           }
-          ensureVisibleAfterZoom([p, ...directChildren]);
+          ensureVisibleAfterZoom(nodesToShow);
         }
         function animateZoom(targetScale) {
           const startScale = scale;
@@ -1636,6 +1692,31 @@
           exportListSelectedIndex = -1;
           currentExportFocus = "search";
           updateExportList();
+
+          // Ensure both lists are focusable even when empty
+          const exportListElement = document.getElementById("exportList");
+          const exportResultsElement = document.getElementById("exportResults");
+
+          if (!exportListElement.hasAttribute("tabindex")) {
+            exportListElement.setAttribute("tabindex", "0");
+          }
+          if (!exportResultsElement.hasAttribute("tabindex")) {
+            exportResultsElement.setAttribute("tabindex", "0");
+          }
+
+          // Make sure they can receive focus even when empty
+          exportResultsElement.style.minHeight = "20px";
+          exportListElement.style.minHeight = "200px";
+
+          // Add invisible content to make them focusable when empty
+          if (exportResultsElement.children.length === 0) {
+            exportResultsElement.innerHTML =
+              '<div style="height: 1px; opacity: 0;">&nbsp;</div>';
+          }
+          if (exportListElement.children.length === 0) {
+            exportListElement.innerHTML =
+              '<div style="height: 1px; opacity: 0;">&nbsp;</div>';
+          }
         };
         window.closeExportModal = () =>
           document.getElementById("exportModal").classList.remove("open");
@@ -1684,10 +1765,18 @@
                   )}</div>`
                 : ""
             }`;
+            // Allow click selection and scrolling
             d.onclick = () => {
-              selectedSearchNode = h;
               exportSearchSelectedIndex = index;
+              selectedSearchNode = h;
               updateExportSearchSelection();
+            };
+            // Double-click to add to export list
+            d.ondblclick = () => {
+              exportSearchSelectedIndex = index;
+              selectedSearchNode = h;
+              updateExportSearchSelection();
+              addToExportList();
             };
             d.onmouseenter = () => {
               exportSearchSelectedIndex = index;
@@ -1760,26 +1849,35 @@
           );
           list.innerHTML = "";
 
-          sortedList.forEach((node, index) => {
-            const d = document.createElement("div");
-            d.className = "search-result";
-            d.innerHTML = `<div>${node.name}</div>${
-              node.person
-                ? `<div style='font-size:.8rem;color:var(--text-secondary)'>${node.person}</div>`
-                : ""
-            }`;
-            d.onclick = () => {
-              selectedExportNode = node;
-              exportListSelectedIndex = index;
-              updateExportSelection();
-            };
-            d.onmouseenter = () => {
-              exportListSelectedIndex = index;
-              selectedExportNode = node;
-              updateExportListSelection();
-            };
-            list.appendChild(d);
-          });
+          if (sortedList.length === 0) {
+            // Add invisible content to keep list focusable when empty
+            list.innerHTML =
+              '<div style="height: 1px; opacity: 0;">&nbsp;</div>';
+          } else {
+            sortedList.forEach((node, index) => {
+              const d = document.createElement("div");
+              d.className = "search-result";
+              d.innerHTML = `<div>${node.name}</div>${
+                node.person
+                  ? `<div style='font-size:.8rem;color:var(--text-secondary)'>${node.person}</div>`
+                  : ""
+              }`;
+              // Allow click selection and scrolling
+              d.onclick = () => {
+                exportListSelectedIndex = index;
+                selectedExportNode = node;
+                updateExportListSelection();
+                // Focus the export list for keyboard navigation
+                document.getElementById("exportList").focus();
+              };
+              d.onmouseenter = () => {
+                exportListSelectedIndex = index;
+                selectedExportNode = node;
+                updateExportListSelection();
+              };
+              list.appendChild(d);
+            });
+          }
 
           document.getElementById("exportCount").textContent = exportList.size;
 
@@ -1899,58 +1997,69 @@
         window.handleExportKeydown = (e) => {
           switch (e.key) {
             case "ArrowDown":
-              e.preventDefault();
-              if (exportSearchResults.length === 0) return;
-              exportSearchSelectedIndex = Math.min(
-                exportSearchSelectedIndex + 1,
-                exportSearchResults.length - 1
-              );
-              selectedSearchNode =
-                exportSearchResults[exportSearchSelectedIndex];
-              updateExportSearchSelection();
-              scrollToSelectedExportItem("search");
-              break;
-
-            case "ArrowUp":
-              e.preventDefault();
-              if (exportSearchResults.length === 0) return;
-              exportSearchSelectedIndex = Math.max(
-                exportSearchSelectedIndex - 1,
-                -1
-              );
-              selectedSearchNode =
-                exportSearchSelectedIndex >= 0
-                  ? exportSearchResults[exportSearchSelectedIndex]
-                  : null;
-              updateExportSearchSelection();
-              scrollToSelectedExportItem("search");
-              break;
-
-            case "ArrowRight":
-              e.preventDefault();
-              if (selectedSearchNode) {
-                addToExportList();
+              // Focus the export results if there are any
+              if (exportSearchResults.length > 0) {
+                e.preventDefault();
+                document.getElementById("exportResults").focus();
+                if (exportSearchSelectedIndex === -1) {
+                  exportSearchSelectedIndex = 0;
+                  selectedSearchNode = exportSearchResults[0];
+                  updateExportSearchSelection();
+                }
               }
               break;
 
-            case "Enter":
-              e.preventDefault();
-              if (selectedSearchNode) {
-                addToExportList();
+            case "ArrowUp":
+              // Focus the export results if there are any
+              if (exportSearchResults.length > 0) {
+                e.preventDefault();
+                document.getElementById("exportResults").focus();
+                if (exportSearchSelectedIndex === -1) {
+                  exportSearchSelectedIndex = exportSearchResults.length - 1;
+                  selectedSearchNode =
+                    exportSearchResults[exportSearchSelectedIndex];
+                  updateExportSearchSelection();
+                }
               }
               break;
 
             case "Tab":
               e.preventDefault();
-              currentExportFocus = "list";
-              document.getElementById("exportList").focus();
-              if (exportList.size > 0 && exportListSelectedIndex === -1) {
-                exportListSelectedIndex = 0;
-                const sortedList = Array.from(exportList).sort((a, b) =>
-                  extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+              // From search input: go to search results first
+              if (exportSearchResults.length > 0) {
+                console.log(
+                  "Focusing exportResults with",
+                  exportSearchResults.length,
+                  "results"
                 );
-                selectedExportNode = sortedList[0];
-                updateExportListSelection();
+                const resultsElement = document.getElementById("exportResults");
+                resultsElement.focus();
+                console.log("Focused element:", document.activeElement.id);
+                if (exportSearchSelectedIndex === -1) {
+                  exportSearchSelectedIndex = 0;
+                  selectedSearchNode = exportSearchResults[0];
+                  updateExportSearchSelection();
+                }
+              } else {
+                // No search results: go directly to export list
+                console.log("No search results, focusing export list");
+                currentExportFocus = "list";
+                const exportListElement = document.getElementById("exportList");
+                exportListElement.focus();
+
+                // Always auto-select first item if list has content
+                if (exportList.size > 0) {
+                  exportListSelectedIndex = 0;
+                  const sortedList = Array.from(exportList).sort((a, b) =>
+                    extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+                  );
+                  selectedExportNode = sortedList[0];
+                  updateExportListSelection();
+                } else {
+                  // Ensure empty list can still receive focus and doesn't escape to browser
+                  exportListSelectedIndex = -1;
+                  selectedExportNode = null;
+                }
               }
               break;
 
@@ -1979,6 +2088,81 @@
           }
         }
 
+        // Export-Results (Suchresultate) Keyboard-Navigation
+        document
+          .getElementById("exportResults")
+          .addEventListener("keydown", (e) => {
+            switch (e.key) {
+              case "ArrowDown":
+                e.preventDefault();
+                if (exportSearchResults.length === 0) return;
+                exportSearchSelectedIndex = Math.min(
+                  exportSearchSelectedIndex + 1,
+                  exportSearchResults.length - 1
+                );
+                selectedSearchNode =
+                  exportSearchResults[exportSearchSelectedIndex];
+                updateExportSearchSelection();
+                scrollToSelectedExportItem("search");
+                break;
+
+              case "ArrowUp":
+                e.preventDefault();
+                if (exportSearchResults.length === 0) return;
+                exportSearchSelectedIndex = Math.max(
+                  exportSearchSelectedIndex - 1,
+                  -1
+                );
+                selectedSearchNode =
+                  exportSearchSelectedIndex >= 0
+                    ? exportSearchResults[exportSearchSelectedIndex]
+                    : null;
+                updateExportSearchSelection();
+                scrollToSelectedExportItem("search");
+                break;
+
+              case "ArrowLeft":
+                e.preventDefault();
+                // Block arrow left to prevent cursor appearance and focus loss
+                break;
+
+              case "ArrowRight":
+              case "Enter":
+                e.preventDefault();
+                if (selectedSearchNode) {
+                  addToExportList();
+                }
+                break;
+
+              case "Tab":
+                e.preventDefault();
+                // From search results: go to export list
+                currentExportFocus = "list";
+                const exportListElement = document.getElementById("exportList");
+                exportListElement.focus();
+
+                // Always auto-select first item if list has content
+                if (exportList.size > 0) {
+                  exportListSelectedIndex = 0;
+                  const sortedList = Array.from(exportList).sort((a, b) =>
+                    extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+                  );
+                  selectedExportNode = sortedList[0];
+                  updateExportListSelection();
+                } else {
+                  // Ensure empty list can still receive focus and doesn't escape to browser
+                  exportListSelectedIndex = -1;
+                  selectedExportNode = null;
+                }
+                break;
+
+              case "Escape":
+                e.preventDefault();
+                closeExportModal();
+                break;
+            }
+          });
+
         // Export-Liste Keyboard-Navigation
         document
           .getElementById("exportList")
@@ -1987,34 +2171,36 @@
               extractSortKey(a.name).localeCompare(extractSortKey(b.name))
             );
 
-            if (sortedList.length === 0) return;
-
             switch (e.key) {
               case "ArrowDown":
                 e.preventDefault();
-                exportListSelectedIndex = Math.min(
-                  exportListSelectedIndex + 1,
-                  sortedList.length - 1
-                );
-                selectedExportNode = sortedList[exportListSelectedIndex];
-                updateExportListSelection();
-                scrollToSelectedExportItem("list");
+                if (sortedList.length > 0) {
+                  exportListSelectedIndex = Math.min(
+                    exportListSelectedIndex + 1,
+                    sortedList.length - 1
+                  );
+                  selectedExportNode = sortedList[exportListSelectedIndex];
+                  updateExportListSelection();
+                  scrollToSelectedExportItem("list");
+                }
                 break;
 
               case "ArrowUp":
                 e.preventDefault();
-                exportListSelectedIndex = Math.max(
-                  exportListSelectedIndex - 1,
-                  0
-                );
-                selectedExportNode = sortedList[exportListSelectedIndex];
-                updateExportListSelection();
-                scrollToSelectedExportItem("list");
+                if (sortedList.length > 0) {
+                  exportListSelectedIndex = Math.max(
+                    exportListSelectedIndex - 1,
+                    0
+                  );
+                  selectedExportNode = sortedList[exportListSelectedIndex];
+                  updateExportListSelection();
+                  scrollToSelectedExportItem("list");
+                }
                 break;
 
               case "ArrowLeft":
                 e.preventDefault();
-                if (selectedExportNode) {
+                if (selectedExportNode && sortedList.length > 0) {
                   removeFromExportList();
                 }
                 break;
@@ -2022,7 +2208,7 @@
               case "Delete":
               case "Backspace":
                 e.preventDefault();
-                if (selectedExportNode) {
+                if (selectedExportNode && sortedList.length > 0) {
                   removeFromExportList();
                 }
                 break;
@@ -2069,12 +2255,15 @@
         };
 
         window.collapseSelected = () => {
-          if (!sel) return;
-          const node = pos.get(sel)?.node;
-          if (node && node.children?.length && expanded.has(sel)) {
-            collapseNodeAndChildren(sel);
-            render();
-          }
+          // Collapse all nodes except root
+          const rootId = root.id;
+          expanded.clear();
+          expanded.add(rootId);
+
+          // Reset selection to root
+          sel = rootId;
+
+          render();
         };
       })();
     </script>
