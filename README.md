@@ -1,158 +1,103 @@
-# 🌳 Organizational Hierarchy Viewer
+# Vanilla Organizational Hierarchy Viewer
 
-A high-performance, interactive organizational chart viewer built with vanilla JavaScript and SVG. Features smooth animations, real-time interactions, and enterprise-grade performance optimizations.
+Ein interaktiver Viewer für Organisationsstrukturen mit Vanilla JavaScript.
 
-## ✨ Features
+## Features
 
-### 🚀 **Performance Optimized**
-- **Ultra-fast rendering**: Optimized from O(n³) to O(1) performance
-- **Instant DOM queries**: Cache-based element lookups
-- **Smooth animations**: 60fps animations with hardware acceleration
-- **Click response**: <50ms response times even with large hierarchies
+- 🌳 Interaktive Hierarchie-Darstellung
+- 🔍 Zoom und Pan-Funktionalität
+- 📁 Drag & Drop JSON-Import
+- 🔄 Expand/Collapse Nodes
+- 📊 Export-Funktionalität
+- 📱 Responsive Design
 
-### 🎨 **Interactive Interface**
-- **Expand/Collapse nodes**: Click to explore organizational structure
-- **Smooth zoom & pan**: Manual and automatic viewport adjustments
-- **Visual feedback**: Real-time hover effects and state changes
-- **Responsive design**: Works on desktop and mobile devices
+## E2E Tests mit Vitest & Playwright
 
-### 📊 **Data Management**
-- **JSON import**: Drag & drop or file upload support
-- **Multi-format export**: Hierarchical and flat export formats
-- **Search functionality**: Find specific nodes quickly
-- **Flexible data structure**: Supports nested organizational data
+### Installation
 
-### 🎭 **Visual Features**
-- **SVG-based rendering**: Crisp, scalable graphics at any zoom level
-- **Animated transitions**: Smooth node morphing and connection drawing
-- **Professional styling**: Clean, modern interface design
-- **Status indicators**: Visual cues for expanded/collapsed states
+```bash
+npm install
+npm run test:setup
+```
 
-## 🏗️ Architecture
+### Tests ausführen
 
-### **Technology Stack**
-- **Frontend**: Vanilla JavaScript (zero dependencies)
-- **Graphics**: SVG with CSS animations
-- **Styling**: CSS3 with custom properties
-- **Performance**: Advanced caching and optimization techniques
+```bash
+# Alle E2E Tests ausführen (headless)
+npm run test:e2e
 
-### **Key Optimizations**
-1. **Layout Algorithm**: O(n²) → O(n) improvement for sibling calculations
-2. **DOM Queries**: O(n) → O(1) using element caching
-3. **Recursive Operations**: O(n³) → O(1) with direct map lookups
-4. **Memory Management**: Efficient cache invalidation and cleanup
+# Tests mit UI (Browser sichtbar)
+npm run test:e2e:headed
 
-## 🚀 Getting Started
+# Tests mit Debug-Modus (langsam + sichtbar)
+npm run test:e2e:debug
 
-### **Quick Start**
-1. Open `index.html` in a modern web browser
-2. Load your organizational data via:
-   - Drag & drop a JSON file onto the interface
-   - Use the "Load File" button to select a file
-3. Interact with the hierarchy by clicking nodes to expand/collapse
+# Test UI (interaktiv)
+npm run test:e2e:ui
 
-### **Data Format**
+# Lokalen Server starten (für manuelle Tests)
+npm run serve
+```
+
+### Test-Struktur
+
+```
+tests/
+├── e2e/
+│   ├── setup.js                    # Browser & Server Setup
+│   ├── hierarchy-viewer.test.js    # Haupttests
+│   └── test-data.json             # Test-Daten
+├── vitest.e2e.config.js           # Vitest Konfiguration
+└── test-results/                   # Test-Reports
+```
+
+### Getestete Funktionalitäten
+
+- ✅ Grundlegende Seitenfunktionalität
+- ✅ Demo-Daten Anzeige
+- ✅ Node Expand/Collapse
+- ✅ Zoom & Pan Interaktionen
+- ✅ Export-Modal Funktionalität
+- ✅ Drag & Drop Datei-Upload
+- ✅ Responsive Design
+- ✅ Fehlerbehandlung
+
+### Debugging
+
+```bash
+# Tests mit sichtbarem Browser (Windows/PowerShell)
+npm run test:e2e:headed
+
+# Tests verlangsamt ausführen für Debugging
+npm run test:e2e:debug
+
+# Manuell mit Umgebungsvariablen (Linux/Mac)
+HEADED=true npm run test:e2e
+SLOW_MO=100 HEADED=true npm run test:e2e
+```
+
+## Verwendung
+
+1. Öffne `index.html` in einem Browser
+2. Lade eine JSON-Datei mit der Organisationsstruktur
+3. Navigiere durch die Hierarchie mit Klicks
+4. Verwende Zoom (Ctrl+Scroll) und Pan (Drag)
+5. Exportiere Teilbereiche über das Export-Modal
+
+## JSON-Format
+
 ```json
 {
   "id": "root",
-  "name": "Organization Name",
+  "name": "CEO",
+  "person": "Name",
   "children": [
     {
       "id": "dept1",
-      "name": "Department A",
-      "person": "Manager Name",
-      "children": [...]
+      "name": "Department",
+      "person": "Manager",
+      "children": []
     }
   ]
 }
 ```
-
-### **Supported Browsers**
-- Chrome 60+
-- Firefox 55+
-- Safari 12+
-- Edge 79+
-
-## 📈 Performance Metrics
-
-### **Before Optimization**
-- Click handler response: >3000ms
-- Sibling rendering: Exponentially slower with hierarchy depth
-- DOM queries: Linear search through entire DOM tree
-
-### **After Optimization**
-- Click handler response: <50ms
-- Sibling rendering: Consistent performance regardless of depth  
-- DOM queries: Instant cache-based lookups
-
-## 🛠️ Development
-
-### **Code Structure**
-```
-index.html          # Single-file application
-├── CSS             # Embedded styling with design system
-├── JavaScript      # Core application logic
-│   ├── Layout      # Hierarchical positioning algorithms
-│   ├── Rendering   # SVG drawing and DOM management
-│   ├── Animations  # Smooth transitions and effects
-│   ├── Interactions# User event handling
-│   └── Export      # Data export functionality
-└── Assets          # Embedded SVG icons and graphics
-```
-
-### **Key Components**
-- **Layout Engine**: Calculates optimal node positioning
-- **Render Pipeline**: Manages SVG creation and updates
-- **Animation System**: Handles smooth state transitions
-- **Cache Manager**: Optimizes DOM element access
-- **Export System**: Supports multiple output formats
-
-## 🎯 Use Cases
-
-- **Corporate organizational charts**
-- **Project team structures** 
-- **Academic institution hierarchies**
-- **Government department layouts**
-- **Non-profit organization structures**
-- **Family tree visualization**
-- **Decision tree mapping**
-
-## 🔧 Customization
-
-### **Styling**
-The application uses CSS custom properties for easy theming:
-
-```css
-:root {
-  --primary-color: #0066CC;
-  --secondary-color: #646973;
-  --background: #FFF;
-  --text-primary: #282D37;
-}
-```
-
-### **Configuration**
-Key parameters can be adjusted in the JavaScript constants:
-
-```javascript
-const PAD = 60;           // Padding around the chart
-const R = 20;             // Node circle radius
-const V_GAP = 60;         // Vertical gap between nodes
-const COL_W = 350;        // Column width
-```
-
-## 📄 License
-
-This project is available under the MIT License. See the LICENSE file for more details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## 📞 Support
-
-For questions or support, please create an issue in the project repository.
-
----
-
-**Built with ❤️ using vanilla JavaScript for maximum performance and compatibility.**

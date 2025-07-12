@@ -1,0 +1,29 @@
+{
+  "name": "vanilla-viewer-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E Tests für Vanilla Organizational Hierarchy Viewer",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test-runner.js",
+    "test:headed": "cross-env HEADED=true node scripts/test-runner.js",
+    "serve": "npx serve . -p 3000",
+    "test:setup": "playwright install"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "playwright": "^1.40.0",
+    "@playwright/test": "^1.40.0",
+    "serve": "^14.2.1",
+    "cross-env": "^7.0.3"
+  },
+  "keywords": [
+    "e2e",
+    "testing",
+    "vitest",
+    "playwright",
+    "vanilla-js"
+  ],
+  "author": "",
+  "license": "MIT"
+}

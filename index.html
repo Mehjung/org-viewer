@@ -1,394 +1,2050 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Organizational Hierarchy Viewer</title>
-  <style>
-    /* === RESET & THEME === */
-    *{margin:0;padding:0;box-sizing:border-box}
-    :root{--primary-color:#0066CC;--primary-dark:#003D7A;--secondary-color:#646973;--border-light:#DADADA;--background-light:#F0F3F5;--text-primary:#282D37;--text-secondary:#646973;--background:#FFF;--border:#DADADA}
-    body{font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--background);color:var(--text-primary);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organizational Hierarchy Viewer</title>
+    <style>
+      /* === RESET & THEME === */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --primary-color: #0066cc;
+        --primary-dark: #003d7a;
+        --secondary-color: #646973;
+        --border-light: #dadada;
+        --background-light: #f0f3f5;
+        --text-primary: #282d37;
+        --text-secondary: #646973;
+        --background: #fff;
+        --border: #dadada;
+      }
+      body {
+        font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, sans-serif;
+        background: var(--background);
+        color: var(--text-primary);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-    /* === HEADER === */
-    .header{background:var(--background);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 4px rgba(0,0,0,.05)}
-    .logo{display:flex;align-items:center;font-size:1.75rem;font-weight:700;color:var(--primary-color);margin-right:2rem}
-    .button{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;font-size:.875rem;font-weight:500;border:1px solid var(--border);border-radius:4px;background:var(--background);cursor:pointer;color:var(--text-primary);transition:.2s;caret-color:transparent}
-    .button:focus{outline:none}
-    .button svg{stroke:currentColor}
-    .button:hover{background:var(--background-light);border-color:var(--primary-color);color:var(--primary-color)}
-    .button.primary{background:var(--primary-color);border-color:var(--primary-color);color:#fff}
-    .button.primary:focus{outline:none;caret-color:transparent}
-    .button.primary:hover{background:var(--primary-dark);border-color:var(--primary-dark)}
-    .stats{margin-left:auto;font-size:.875rem;color:var(--text-secondary);cursor:default;user-select:none}
+      /* === HEADER === */
+      .header {
+        background: var(--background);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-right: 2rem;
+      }
+      .button {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--background);
+        cursor: pointer;
+        color: var(--text-primary);
+        transition: 0.2s;
+        caret-color: transparent;
+      }
+      .button:focus {
+        outline: none;
+      }
+      .button svg {
+        stroke: currentColor;
+      }
+      .button:hover {
+        background: var(--background-light);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+      }
+      .button.primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: #fff;
+      }
+      .button.primary:focus {
+        outline: none;
+        caret-color: transparent;
+      }
+      .button.primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+      }
+      .stats {
+        margin-left: auto;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        cursor: default;
+        user-select: none;
+      }
 
-    /* === CANVAS === */
-    .container{flex:1;position:relative;overflow:hidden;background:var(--background-light)}
-    .chart-container{position:absolute;inset:0;overflow:auto;padding:5rem;cursor:default}
-    .chart-container.drag-over{border:3px dashed var(--primary-color);background:rgba(0,102,204,0.1)}
-    .drop-overlay{position:absolute;inset:0;background:rgba(0,102,204,0.2);display:none;align-items:center;justify-content:center;font-size:1.5rem;font-weight:600;color:var(--primary-color);z-index:50}
-    .drop-overlay.visible{display:flex}
-    .chart-svg{min-width:100%;min-height:100%;transform-origin:0 0}
+      /* === CANVAS === */
+      .container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: var(--background-light);
+      }
+      .chart-container {
+        position: absolute;
+        inset: 0;
+        overflow: auto;
+        padding: 5rem;
+        cursor: default;
+      }
+      .chart-container.drag-over {
+        border: 3px dashed var(--primary-color);
+        background: rgba(0, 102, 204, 0.1);
+      }
+      .drop-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 102, 204, 0.2);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        z-index: 50;
+      }
+      .drop-overlay.visible {
+        display: flex;
+      }
+      .chart-svg {
+        min-width: 100%;
+        min-height: 100%;
+        transform-origin: 0 0;
+      }
 
-    /* === NODES === */
-    .node-circle{fill:#fff;stroke:var(--border-light);stroke-width:2;transition:.3s}
-    .node-circle.active:not(.node-morphing),.node-circle.in-path:not(.node-morphing){fill:var(--primary-color);stroke:var(--primary-color)}
-    .node-circle.node-morphing{stroke:var(--primary-color)}
-    .node-circle:hover{stroke:var(--primary-color);stroke-width:3}
-    .node-text{font-size:13px;fill:var(--text-primary);font-weight:500;white-space:pre;user-select:none;-webkit-user-select:none;-moz-user-select:none}
-    .node-text.inactive{fill:var(--text-secondary)}
-    .node-person{font-size:12px;fill:var(--text-secondary);user-select:none;-webkit-user-select:none;-moz-user-select:none}
-    .expand-indicator{fill:none;stroke:var(--primary-color);stroke-width:2;stroke-dasharray:3,2;opacity:0.7}
-    .expand-indicator.collapsed{stroke:var(--secondary-color);stroke-dasharray:2,3;opacity:0.5}
-    .connection{fill:none;stroke:var(--primary-color);stroke-width:2}
-    .connection.inactive{stroke:var(--border-light);stroke-width:1}
-    .connection.animating{stroke:var(--primary-color);stroke-width:3;stroke-dasharray:1000;stroke-dashoffset:1000;animation:drawLine 0.8s ease-in-out forwards}
-    .connection.animated{stroke:var(--primary-color);stroke-width:3;stroke-dasharray:none}
+      /* === NODES === */
+      .node-circle {
+        fill: #fff;
+        stroke: var(--border-light);
+        stroke-width: 2;
+        transition: 0.3s;
+      }
+      .node-circle.active:not(.node-morphing),
+      .node-circle.in-path:not(.node-morphing) {
+        fill: var(--primary-color);
+        stroke: var(--primary-color);
+      }
+      .node-circle.node-morphing {
+        stroke: var(--primary-color);
+      }
+      .node-circle:hover {
+        stroke: var(--primary-color);
+        stroke-width: 3;
+      }
+      .node-text {
+        font-size: 13px;
+        fill: var(--text-primary);
+        font-weight: 500;
+        white-space: pre;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+      }
+      .node-text.inactive {
+        fill: var(--text-secondary);
+      }
+      .node-person {
+        font-size: 12px;
+        fill: var(--text-secondary);
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+      }
+      .expand-indicator {
+        fill: none;
+        stroke: var(--primary-color);
+        stroke-width: 2;
+        stroke-dasharray: 3, 2;
+        opacity: 0.7;
+      }
+      .expand-indicator.collapsed {
+        stroke: var(--secondary-color);
+        stroke-dasharray: 2, 3;
+        opacity: 0.5;
+      }
+      .connection {
+        fill: none;
+        stroke: var(--primary-color);
+        stroke-width: 2;
+      }
+      .connection.inactive {
+        stroke: var(--border-light);
+        stroke-width: 1;
+      }
+      .connection.animating {
+        stroke: var(--primary-color);
+        stroke-width: 3;
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawLine 0.8s ease-in-out forwards;
+      }
+      .connection.animated {
+        stroke: var(--primary-color);
+        stroke-width: 3;
+        stroke-dasharray: none;
+      }
 
-    @keyframes drawLine{to{stroke-dashoffset:0}}
-    @keyframes colorMorph{
-      0% { fill: #ffffff; }
-      100% { fill: var(--primary-color); }
-    }
-    .node-morphing{animation:colorMorph 0.4s ease-in-out forwards}
+      @keyframes drawLine {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes colorMorph {
+        0% {
+          fill: #ffffff;
+        }
+        100% {
+          fill: var(--primary-color);
+        }
+      }
+      .node-morphing {
+        animation: colorMorph 0.4s ease-in-out forwards;
+      }
 
+      /* === MODALS === */
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal.open {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--background);
+        border-radius: 8px;
+        padding: 2rem;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      .close-button {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--text-secondary);
+        cursor: pointer;
+      }
+      .close-button:hover {
+        color: var(--text-primary);
+      }
+      .input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+      .search-results {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .search-result {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .search-result:last-child {
+        border-bottom: none;
+      }
+      .search-result:hover {
+        background: var(--background-light);
+      }
+      .search-result.selected {
+        background: var(--primary-color);
+        color: #fff;
+      }
+      .search-match {
+        font-weight: 600;
+        color: var(--primary-color);
+      }
+      .export-options {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+      }
+      .export-option {
+        flex: 1;
+        padding: 0.75rem;
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        text-align: center;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .export-option:hover {
+        border-color: var(--primary-color);
+        background: var(--background-light);
+      }
+      .export-option.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: #fff;
+      }
 
+      /* === SEARCHBAR === */
+      .search-container {
+        position: relative;
+        margin-left: 1rem;
+      }
+      .search-input {
+        display: flex;
+        align-items: center;
+        position: relative;
+        width: 300px;
+      }
+      .search-input input {
+        padding: 0.5rem 0.5rem 0.5rem 2.5rem;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 0.875rem;
+        width: 100%;
+        background: var(--background);
+        color: var(--text-primary);
+        transition: 0.2s;
+      }
+      .search-input input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+      }
+      .search-input input::placeholder {
+        color: var(--text-secondary);
+      }
+      .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        color: var(--text-secondary);
+        z-index: 1;
+        pointer-events: none;
+      }
+      .search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+      }
+      .search-dropdown.visible {
+        display: block;
+      }
+      .search-dropdown-item {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-light);
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .search-dropdown-item:last-child {
+        border-bottom: none;
+      }
+      .search-dropdown-item:hover {
+        background: var(--background-light);
+      }
+      .search-dropdown-item.selected {
+        background: var(--primary-color);
+        color: #fff;
+      }
+      .search-highlight {
+        font-weight: 600;
+        background: rgba(0, 102, 204, 0.2);
+        padding: 0 0.2rem;
+        border-radius: 2px;
+      }
+      .search-dropdown-item.selected .search-highlight {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HEADER -->
+    <div class="header">
+      <div class="logo">
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <!-- Organization Tree Icon -->
+          <circle cx="16" cy="6" r="3" fill="currentColor" />
+          <rect x="14" y="9" width="4" height="6" fill="currentColor" />
+          <circle cx="8" cy="20" r="2.5" fill="currentColor" />
+          <circle cx="16" cy="20" r="2.5" fill="currentColor" />
+          <circle cx="24" cy="20" r="2.5" fill="currentColor" />
+          <rect x="7" y="15" width="3" height="5" fill="currentColor" />
+          <rect x="15" y="15" width="3" height="5" fill="currentColor" />
+          <rect x="23" y="15" width="3" height="5" fill="currentColor" />
+          <!-- Connection lines -->
+          <rect x="8" y="15" width="16" height="1" fill="currentColor" />
+          <rect x="15.5" y="15" width="1" height="3" fill="currentColor" />
+          <!-- Sub-nodes -->
+          <circle cx="5" cy="26" r="1.5" fill="currentColor" opacity="0.7" />
+          <circle cx="11" cy="26" r="1.5" fill="currentColor" opacity="0.7" />
+          <circle cx="21" cy="26" r="1.5" fill="currentColor" opacity="0.7" />
+          <circle cx="27" cy="26" r="1.5" fill="currentColor" opacity="0.7" />
+          <rect
+            x="4.5"
+            y="22"
+            width="2"
+            height="4"
+            fill="currentColor"
+            opacity="0.7"
+          />
+          <rect
+            x="10.5"
+            y="22"
+            width="2"
+            height="4"
+            fill="currentColor"
+            opacity="0.7"
+          />
+          <rect
+            x="20.5"
+            y="22"
+            width="2"
+            height="4"
+            fill="currentColor"
+            opacity="0.7"
+          />
+          <rect
+            x="26.5"
+            y="22"
+            width="2"
+            height="4"
+            fill="currentColor"
+            opacity="0.7"
+          />
+          <rect
+            x="5"
+            y="22"
+            width="7"
+            height="0.5"
+            fill="currentColor"
+            opacity="0.7"
+          />
+          <rect
+            x="21"
+            y="22"
+            width="7"
+            height="0.5"
+            fill="currentColor"
+            opacity="0.7"
+          />
+        </svg>
+      </div>
 
-    /* === MODALS === */
-    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
-    .modal.open{display:flex}
-    .modal-content{background:var(--background);border-radius:8px;padding:2rem;width:90%;max-width:480px;box-shadow:0 10px 25px rgba(0,0,0,.1)}
-    .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-    .modal-title{font-size:1.25rem;font-weight:600}
-    .close-button{background:none;border:none;font-size:1.5rem;color:var(--text-secondary);cursor:pointer}
-    .close-button:hover{color:var(--text-primary)}
-    .input{width:100%;padding:.75rem;border:1px solid var(--border);border-radius:4px;font-size:1rem;margin-bottom:1rem}
-    .search-results{max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:4px}
-    .search-result{padding:.75rem;border-bottom:1px solid var(--border);cursor:pointer;transition:.2s}
-    .search-result:last-child{border-bottom:none}
-    .search-result:hover{background:var(--background-light)}
-    .search-result.selected{background:var(--primary-color);color:#fff}
-    .search-match{font-weight:600;color:var(--primary-color)}
-    .export-options{display:flex;gap:1rem;margin-top:.5rem}
-    .export-option{flex:1;padding:.75rem;border:2px solid var(--border);border-radius:4px;text-align:center;cursor:pointer;transition:.2s}
-    .export-option:hover{border-color:var(--primary-color);background:var(--background-light)}
-    .export-option.selected{border-color:var(--primary-color);background:var(--primary-color);color:#fff}
-  </style>
-</head>
-<body>
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo">
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Organization Tree Icon -->
-        <circle cx="16" cy="6" r="3" fill="currentColor"/>
-        <rect x="14" y="9" width="4" height="6" fill="currentColor"/>
-        <circle cx="8" cy="20" r="2.5" fill="currentColor"/>
-        <circle cx="16" cy="20" r="2.5" fill="currentColor"/>
-        <circle cx="24" cy="20" r="2.5" fill="currentColor"/>
-        <rect x="7" y="15" width="3" height="5" fill="currentColor"/>
-        <rect x="15" y="15" width="3" height="5" fill="currentColor"/>
-        <rect x="23" y="15" width="3" height="5" fill="currentColor"/>
-        <!-- Connection lines -->
-        <rect x="8" y="15" width="16" height="1" fill="currentColor"/>
-        <rect x="15.5" y="15" width="1" height="3" fill="currentColor"/>
-        <!-- Sub-nodes -->
-        <circle cx="5" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
-        <circle cx="11" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
-        <circle cx="21" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
-        <circle cx="27" cy="26" r="1.5" fill="currentColor" opacity="0.7"/>
-        <rect x="4.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
-        <rect x="10.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
-        <rect x="20.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
-        <rect x="26.5" y="22" width="2" height="4" fill="currentColor" opacity="0.7"/>
-        <rect x="5" y="22" width="7" height="0.5" fill="currentColor" opacity="0.7"/>
-        <rect x="21" y="22" width="7" height="0.5" fill="currentColor" opacity="0.7"/>
-      </svg>
-    </div>
-    <button class="button" onclick="loadFile()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Datei laden
-    </button>
-
-    <button class="button" onclick="collapseSelected()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      Einklappen
-    </button>
-    <button class="button" onclick="openExportModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 1 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Export
-    </button>
-    <div class="stats"><span id="nodeCount">0</span>&nbsp;Abteilungen&nbsp;&nbsp;•&nbsp;&nbsp;Zoom&nbsp;<span id="zoomLevel">100</span>%</div>
-  </div>
-
-  <!-- MAIN VIEW -->
-  <div class="container">
-    <div id="chartContainer" class="chart-container">
-      <svg id="chartSvg" class="chart-svg"></svg>
-      <div id="dropOverlay" class="drop-overlay">📁 JSON-Datei hier ablegen</div>
-    </div>
-  </div>
-
-
-  <!-- EXPORT MODAL -->
-  <div id="exportModal" class="modal">
-    <div class="modal-content" style="max-width:800px">
-      <div class="modal-header"><h2 class="modal-title">Export</h2><button class="close-button" onclick="closeExportModal()">&times;</button></div>
-      <div style="display:flex;gap:1rem">
-        <div style="flex:1">
-          <input id="exportSearch" class="input" placeholder="Abteilung suchen…" oninput="exportSearch()" autocomplete="off">
-          <div id="exportResults" class="search-results"></div>
+      <!-- SEARCHBAR -->
+      <div class="search-container">
+        <div class="search-input">
+          <svg
+            class="search-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            id="mainSearch"
+            type="text"
+            placeholder="Abteilung oder Person suchen..."
+            autocomplete="off"
+            oninput="mainSearch()"
+            onkeydown="handleSearchKeydown(event)"
+            onfocus="showSearchDropdown()"
+            onblur="hideSearchDropdown()"
+          />
         </div>
-        <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:center;justify-content:center;padding:1rem">
-          <button class="button" onclick="addToExportList()" style="font-size:1.2rem;padding:0.5rem">→</button>
-          <button class="button" onclick="removeFromExportList()" style="font-size:1.2rem;padding:0.5rem">←</button>
-        </div>
-        <div style="flex:1">
-          <div style="font-weight:600;margin-bottom:0.5rem">Export-Liste (<span id="exportCount">0</span>)</div>
-          <div id="exportList" class="search-results" style="min-height:200px"></div>
+        <div id="searchDropdown" class="search-dropdown"></div>
+      </div>
+
+      <button class="button" onclick="loadFile()">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Datei laden
+      </button>
+
+      <button class="button" onclick="collapseSelected()">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+        Einklappen
+      </button>
+      <button class="button" onclick="openExportModal()">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        Export
+      </button>
+      <div class="stats">
+        <span id="nodeCount">0</span
+        >&nbsp;Abteilungen&nbsp;&nbsp;•&nbsp;&nbsp;Zoom&nbsp;<span
+          id="zoomLevel"
+          >100</span
+        >%
+      </div>
+    </div>
+
+    <!-- MAIN VIEW -->
+    <div class="container">
+      <div id="chartContainer" class="chart-container">
+        <svg id="chartSvg" class="chart-svg"></svg>
+        <div id="dropOverlay" class="drop-overlay">
+          📁 JSON-Datei hier ablegen
         </div>
       </div>
-      <div class="export-options" id="exportOptions">
-        <div id="optHier" class="export-option selected" onclick="selectFormat('hierarchical')">Hierarchisch</div>
-        <div id="optFlat" class="export-option" onclick="selectFormat('flat')">Flache Liste</div>
-      </div>
-      <button id="exportBtn" class="button primary" style="width:100%;margin-top:1rem;justify-content:center" onclick="doExport()">Multi-Export</button>
     </div>
-  </div>
 
-  <!-- HIDDEN FILE INPUT -->
-  <input type="file" id="fileInput" accept=".json" style="display:none">
+    <!-- EXPORT MODAL -->
+    <div id="exportModal" class="modal">
+      <div class="modal-content" style="max-width: 800px">
+        <div class="modal-header">
+          <h2 class="modal-title">Export</h2>
+          <button class="close-button" onclick="closeExportModal()">
+            &times;
+          </button>
+        </div>
+        <div style="display: flex; gap: 1rem">
+          <div style="flex: 1">
+            <label
+              for="exportSearch"
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                display: block;
+                user-select: none;
+              "
+              >Verfügbare Abteilungen</label
+            >
+            <input
+              id="exportSearch"
+              class="input"
+              placeholder="Abteilung suchen…"
+              oninput="exportSearch()"
+              onkeydown="handleExportKeydown(event)"
+              autocomplete="off"
+            />
+            <div id="exportResults" class="search-results" tabindex="0"></div>
+          </div>
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 0.5rem;
+              align-items: center;
+              justify-content: center;
+              padding: 1rem;
+            "
+          >
+            <button
+              class="button"
+              onclick="addToExportList()"
+              style="font-size: 1.2rem; padding: 0.5rem"
+            >
+              →
+            </button>
+            <button
+              class="button"
+              onclick="removeFromExportList()"
+              style="font-size: 1.2rem; padding: 0.5rem"
+            >
+              ←
+            </button>
+          </div>
+          <div style="flex: 1">
+            <label
+              style="
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+                display: block;
+                user-select: none;
+              "
+              >Export-Liste (<span id="exportCount">0</span>)</label
+            >
+            <div
+              id="exportList"
+              class="search-results"
+              style="min-height: 200px"
+              tabindex="0"
+            ></div>
+          </div>
+        </div>
+        <div class="export-options" id="exportOptions">
+          <div
+            id="optHier"
+            class="export-option selected"
+            onclick="selectFormat('hierarchical')"
+          >
+            Hierarchisch
+          </div>
+          <div
+            id="optFlat"
+            class="export-option"
+            onclick="selectFormat('flat')"
+          >
+            Flache Liste
+          </div>
+        </div>
+        <button
+          id="exportBtn"
+          class="button primary"
+          style="width: 100%; margin-top: 1rem; justify-content: center"
+          onclick="doExport()"
+        >
+          Multi-Export
+        </button>
+      </div>
+    </div>
 
-<script>
-(()=>{
-  /* === CONSTS === */
-  const PAD=60,R=20,LH=16,MAX_CHARS=22,BASE_H=50,V_GAP=20;let COL_W=350,scale=1;
+    <!-- HIDDEN FILE INPUT -->
+    <input type="file" id="fileInput" accept=".json" style="display: none" />
 
-  /* === STATE === */
-  let root=null,sel=null,expanded=new Set(),path=new Set();const pos=new Map();let selectedSearchNode=null,exportList=new Set(),format='hierarchical',lastUserZoomTime=0;
+    <script>
+      (() => {
+        /* === CONSTS === */
+        const PAD = 60,
+          R = 20,
+          LH = 16,
+          MAX_CHARS = 22,
+          BASE_H = 50,
+          V_GAP = 20;
+        let COL_W = 350,
+          scale = 1;
 
-  /* === DOM === */
-  const svg=document.getElementById('chartSvg');const container=document.getElementById('chartContainer');
+        /* === STATE === */
+        let root = null,
+          sel = null,
+          expanded = new Set(),
+          path = new Set();
+        const pos = new Map();
+        let selectedSearchNode = null,
+          selectedExportNode = null,
+          exportList = new Set(),
+          format = "hierarchical",
+          lastUserZoomTime = 0;
+        let mainSearchResults = [];
+        let selectedSearchIndex = -1;
 
-  /* === UTIL === */
-  const easeInOutCubic=t=>t<0.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;
-  const wrap=(txt,m)=>{const w=txt.split(' '),lines=[];let l='';w.forEach(word=>{if((l+' '+word).trim().length>m){lines.push(l.trim());l=word}else l+=(l?' ':'')+word});lines.push(l.trim());return lines};
-  const count=n=>1+(n.children?.reduce((s,c)=>s+count(c),0)||0);
-  const allNodes=(n=root,arr=[])=>{arr.push(n);n.children?.forEach(c=>allNodes(c,arr));return arr};
+        /* === SEARCH FUNCTIONS === */
+        function expandPathToNode(targetNode) {
+          // Find the path from root to target node
+          const path = findPathToNode(targetNode);
 
-  /* === FILE === */
-  window.loadFile=()=>document.getElementById('fileInput').click();
-  document.getElementById('fileInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=ev=>{try{init(JSON.parse(ev.target.result))}catch{alert('Ungültige JSON')}};fr.readAsText(f)});
-  
-  /* === DRAG & DROP === */
-  const dropOverlay=document.getElementById('dropOverlay');
-  const chartContainer=document.getElementById('chartContainer');
-  let dragCounter=0;
-  
-  chartContainer.addEventListener('dragenter',e=>{e.preventDefault();dragCounter++;chartContainer.classList.add('drag-over');dropOverlay.classList.add('visible')});
-  chartContainer.addEventListener('dragover',e=>e.preventDefault());
-  chartContainer.addEventListener('dragleave',e=>{e.preventDefault();dragCounter--;if(dragCounter===0){chartContainer.classList.remove('drag-over');dropOverlay.classList.remove('visible')}});
-  chartContainer.addEventListener('drop',e=>{e.preventDefault();dragCounter=0;chartContainer.classList.remove('drag-over');dropOverlay.classList.remove('visible');const files=e.dataTransfer.files;if(files.length>0){const file=files[0];if(file.type==='application/json'||file.name.endsWith('.json')){const fr=new FileReader();fr.onload=ev=>{try{init(JSON.parse(ev.target.result))}catch{alert('Ungültige JSON-Datei')}};fr.readAsText(file)}else{alert('Bitte nur JSON-Dateien (.json)')}}})
+          // Expand all parent nodes in the path
+          path.forEach((node) => {
+            if (node.id !== targetNode.id) {
+              expanded.add(node.id);
+            }
+          });
+        }
 
-  /* === DEMO === */
-  const demo={id:'root',name:'CEO – Very long title needs wrapping',person:'Alice',children:[{id:'s1',name:'Head of Strategy & Transformation',person:'Bob',children:[{id:'s1a',name:'Strategic Org Dev',person:'Carol',children:[]},{id:'s1b',name:'Org Design & Change',person:'Dan',children:[]}]},{id:'it',name:'Chief Digital & Tech Officer',person:'Eve',children:[]}]};
-  document.addEventListener('DOMContentLoaded',()=>init(demo));
+        function findPathToNode(targetNode, current = root, path = []) {
+          if (current.id === targetNode.id) {
+            return [...path, current];
+          }
 
-  /* === INIT === */
-  function init(data){root=data;expanded.clear();path.clear();sel=null;pos.clear();expanded.add(root.id);lastUserZoomTime=0;scale=1;svg.style.transform='scale(1)';document.getElementById('nodeCount').textContent=count(root);updateScrollBounds();render();centerView();}
+          if (current.children) {
+            for (const child of current.children) {
+              const result = findPathToNode(targetNode, child, [
+                ...path,
+                current,
+              ]);
+              if (result.length > 0) {
+                return result;
+              }
+            }
+          }
 
-  /* === LAYOUT === */
-  function layout(node,x=PAD,y=PAD,arr=[]){
-    const lines=wrap(node.name,MAX_CHARS);
-    const height=BASE_H+(lines.length-1)*LH;
-    const p={id:node.id,x,y,node,lines,height};
-    arr.push(p);
-    pos.set(node.id,p);
-    COL_W=Math.max(COL_W,Math.max(...lines.map(l=>l.length))*7+200);
-    
-    if(expanded.has(node.id)&&node.children?.length){
-      // 🚀 OPTIMIERT: Pre-calculate alle Child-Heights in einem Batch - O(n) statt O(n²)
-      const childHeights = node.children.map(c => {
-        const childLines = wrap(c.name, MAX_CHARS);
-        return BASE_H + (childLines.length - 1) * LH;
-      });
-      
-      // Berechne total height und start position
-      const totalHeight = childHeights.reduce((sum, h) => sum + h + V_GAP, 0) - V_GAP;
-      let cy = y - (totalHeight / 2) + (childHeights[0] / 2);
-      
-      // Layout Children mit pre-calculated heights
-      node.children.forEach((c, i) => {
-        layout(c, x + COL_W, cy, arr);
-        cy += childHeights[i] + V_GAP;
-      });
-    }
-    return arr;
-  }
-  // 🚀 REMOVED: sum() und heightOf() - ersetzt durch O(n) batch calculation
-  
-  /* === PHASE 2: DOM-ELEMENT-CACHE für O(1) Performance === */
-  const domElementCache = new Map(); // Cache für instant DOM-Lookups
+          return [];
+        }
 
-  function normalize(arr){const minX=Math.min(...arr.map(p=>p.x)),minY=Math.min(...arr.map(p=>p.y));const dx=Math.max(PAD-minX,0),dy=Math.max(PAD-minY,0);if(dx||dy){arr.forEach(p=>{p.x+=dx;p.y+=dy});pos.forEach(p=>{p.x+=dx;p.y+=dy})}}
+        function selectSearchResult(index) {
+          if (index < 0 || index >= mainSearchResults.length) return;
 
-  /* === RENDER === */
-  function render(){
-    // 🚀 PHASE 2: Cache leeren bei fullRender
-    domElementCache.clear();
-    svg.innerHTML='';
-    if(!root)return;
-    pos.clear();
-    COL_W=350;
-    
-    const posArr=layout(root);
-    normalize(posArr);
-    updatePath();
-    
-    const w=Math.max(...posArr.map(p=>p.x))+COL_W,h=Math.max(...posArr.map(p=>p.y))+PAD;
-    svg.setAttribute('width',w);
-    svg.setAttribute('height',h);
-    svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
-    
-    const ns='http://www.w3.org/2000/svg',gE=document.createElementNS(ns,'g'),gN=document.createElementNS(ns,'g');
-    svg.append(gE,gN);
-    
-    posArr.forEach(p=>expanded.has(p.id)&&p.node.children?.forEach(c=>drawEdge(gE,p,pos.get(c.id))));
-    posArr.forEach(p=>drawNode(gN,p));
-    
-    updateScrollBounds();
-    ensureVisible();
-  }
+          const selectedNode = mainSearchResults[index];
+          sel = selectedNode.id;
 
-  function updatePath(){path.clear();if(!sel)return;let p=pos.get(sel);while(p){path.add(p.id);p=findParent(p.id)}}
-  const findParent=id=>{for(const p of pos.values()){if(p.node.children?.some(c=>c.id===id))return p}return null};
-  const collapseSiblings=id=>{const parent=findParent(id);if(parent){parent.node.children?.forEach(sibling=>{if(sibling.id!==id&&expanded.has(sibling.id)){collapseNodeAndChildren(sibling.id)}})}};
-  const collapseNodeAndChildren=id=>{expanded.delete(id);const node=pos.get(id)?.node;node?.children?.forEach(child=>collapseNodeAndChildren(child.id))};
+          // Expand parent nodes to show the path
+          expandPathToNode(selectedNode);
 
-  /* === DRAW === */
-  function drawEdge(g,parent,child){
-    if(!child)return;
-    const ns='http://www.w3.org/2000/svg',edge=document.createElementNS(ns,'path');
-    const x1=parent.x+R,y1=parent.y,x2=child.x-R,y2=child.y,m=(x1+x2)/2;
-    edge.setAttribute('d',`M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}`);
-    edge.setAttribute('class','connection'+(path.has(parent.id)&&path.has(child.id)?'':' inactive'));
-    
-    // 🚀 PHASE 2: Eindeutige ID für instant lookup  
-    edge.id = `conn-${parent.id}-${child.id}`;
-    domElementCache.set(`conn-${parent.id}-${child.id}`, edge);
-    
-    g.appendChild(edge);
-  }
+          render();
+          animateToClickedNode(selectedNode.id);
 
-  function drawNode(g,p){
-    const ns='http://www.w3.org/2000/svg',grp=document.createElementNS(ns,'g');
-    grp.setAttribute('transform',`translate(${p.x},${p.y})`);
-    
-    // 🚀 PHASE 2: Eindeutige ID für instant lookup
-    grp.id = `node-${p.id}`;
-    domElementCache.set(`node-${p.id}`, grp);
-    const circ=document.createElementNS(ns,'circle');circ.setAttribute('r',R);circ.setAttribute('class','node-circle'+(sel===p.id?' active':path.has(p.id)?' in-path':''));grp.appendChild(circ);
-    const txt=document.createElementNS(ns,'text');txt.setAttribute('x',R+10);txt.setAttribute('y',-(p.lines.length-1)*LH/2);txt.setAttribute('class','node-text'+(!path.has(p.id)&&sel!==p.id?' inactive':''));p.lines.forEach((l,i)=>{const ts=document.createElementNS(ns,'tspan');ts.setAttribute('x',R+10);ts.setAttribute('dy',i?LH:0);ts.textContent=l;txt.appendChild(ts)});grp.appendChild(txt);
-    if(p.node.person){const pers=document.createElementNS(ns,'text');pers.setAttribute('x',R+10);pers.setAttribute('y',p.lines.length*LH/2+12);pers.setAttribute('class','node-person');pers.textContent=p.node.person;grp.appendChild(pers)}
-    if(p.node.children?.length){const indicator=document.createElementNS(ns,'circle');indicator.setAttribute('cx',0);indicator.setAttribute('cy',0);indicator.setAttribute('r',24);indicator.setAttribute('class','expand-indicator'+(expanded.has(p.id)?'':' collapsed'));grp.appendChild(indicator)}
-    grp.onclick=()=>{if(p.node.children?.length){if(expanded.has(p.id)){const wasExpanded=true;collapseNodeAndChildren(p.id);sel=p.id;render();if(wasExpanded)checkAutoZoomIn(p.id)}else{resetSisterNodes(p.id);collapseSiblings(p.id);expanded.add(p.id);sel=p.id;render();animateToClickedNode(p.id)}}else{resetSisterNodes(p.id);collapseSiblings(p.id);sel=p.id;render();animateToClickedNode(p.id)}};
-    g.appendChild(grp)}
+          // Hide dropdown and clear search
+          document.getElementById("searchDropdown").classList.remove("visible");
+          document.getElementById("mainSearch").value = "";
+          selectedSearchIndex = -1;
+          mainSearchResults = [];
+        }
 
+        function updateSearchSelection() {
+          const items = document.querySelectorAll(".search-dropdown-item");
+          items.forEach((item, index) => {
+            if (item.dataset.index !== undefined) {
+              item.classList.toggle(
+                "selected",
+                parseInt(item.dataset.index) === selectedSearchIndex
+              );
+            }
+          });
+        }
 
-
-  /* === VIEWPORT HANDLING === */
-  function ensureVisible(){if(!sel)return;const p=pos.get(sel);if(!p)return;if(!expanded.has(p.id)||!p.node.children?.length)return;const directChildren=p.node.children.map(child=>pos.get(child.id)).filter(Boolean);if(directChildren.length===0)return;if(Date.now()-lastUserZoomTime<2000)return;let currentScale=scale;let bounds=getNodesBounds([p,...directChildren]);const vp=getViewportBounds();const margin=80;const maxZoomOut=0.4;while(currentScale>=maxZoomOut){const scaledBounds={...bounds,left:bounds.left*currentScale/scale,right:bounds.right*currentScale/scale,top:bounds.top*currentScale/scale,bottom:bounds.bottom*currentScale/scale,width:bounds.width*currentScale/scale,height:bounds.height*currentScale/scale};if(scaledBounds.width<=vp.width-2*margin&&scaledBounds.height<=vp.height-2*margin){if(currentScale!==scale){animateZoom(currentScale);setTimeout(()=>ensureVisibleAfterZoom([p,...directChildren]),300)}else{ensureVisibleAfterZoom([p,...directChildren])}return}currentScale-=0.1}ensureVisibleAfterZoom([p,...directChildren])}
-  function ensureVisibleAfterZoom(nodes){const bounds=getNodesBounds(nodes);const vp=getViewportBounds();const margin=80;const needsAdjust=bounds.left<vp.left+margin||bounds.right>vp.right-margin||bounds.top<vp.top+margin||bounds.bottom>vp.bottom-margin;if(needsAdjust){const centerX=bounds.left+bounds.width/2;const centerY=bounds.top+bounds.height/2;const targetLeft=centerX-vp.width/2;const targetTop=centerY-vp.height/2;smoothScrollTo(targetLeft,targetTop)}}
-  function animateZoom(targetScale){const startScale=scale;const duration=300;const startTime=performance.now();function animate(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);const easeProgress=easeInOutCubic(progress);scale=startScale+(targetScale-startScale)*easeProgress;svg.style.transform=`scale(${scale})`;updateScrollBounds();if(progress<1)requestAnimationFrame(animate);}requestAnimationFrame(animate)}
-  function checkAutoZoomIn(collapsedNodeId){if(Date.now()-lastUserZoomTime<2000)return;const p=pos.get(collapsedNodeId);if(!p||!p.node.children?.length)return;const childCount=p.node.children.length;const hadManyChildren=childCount>=3;if(!hadManyChildren)return;const vp=getViewportBounds();const currentVisibleNodes=Array.from(pos.values()).filter(node=>{const x=node.x*scale;const y=node.y*scale;return x>=vp.left-100&&x<=vp.right+100&&y>=vp.top-100&&y<=vp.bottom+100});const density=currentVisibleNodes.length;const maxZoomIn=2;const targetScale=Math.min(maxZoomIn,scale*Math.min(1.3,1+childCount*0.1));if(targetScale>scale*1.1){setTimeout(()=>animateZoom(targetScale),200)}}
-  function animateToClickedNode(nodeId){
-    setTimeout(()=>{
-      const nodePos=pos.get(nodeId);
-      if(!nodePos)return;
-      const parentPos=findParent(nodeId);
-      if(!parentPos)return;
-      
-      // 🚀 PHASE 2: getElementById statt querySelector - O(1) statt O(n)
-      const nodeGroup = domElementCache.get(`node-${nodeId}`);
-      const connection = domElementCache.get(`conn-${parentPos.id}-${nodeId}`);
-      
-      if(connection){
-        connection.classList.add('animating');
-        setTimeout(()=>{
-          connection.classList.remove('animating');
-          connection.classList.add('animated');
-        },800);
-      }
-      
-      if(nodeGroup){
-        setTimeout(()=>createColorMorphEffect(nodeGroup, nodePos),800);
-      }
-    },100);
-  }
-  function resetSisterNodes(nodeId){
-    const parentPos=findParent(nodeId);
-    if(!parentPos)return;
-    
-    parentPos.node.children?.forEach(sibling=>{
-      if(sibling.id!==nodeId){
-        // 🚀 PHASE 2: Cache-Lookup statt querySelector - O(1) statt O(n)
-        const siblingGroup = domElementCache.get(`node-${sibling.id}`);
-        if(siblingGroup){
-          const siblingCircle = siblingGroup.querySelector('circle');
-          if(siblingCircle){
-            siblingCircle.style.fill='#ffffff';
-            siblingCircle.style.stroke='var(--border-light)';
-            siblingCircle.classList.remove('node-morphing');
+        function scrollToSearchItem() {
+          const items = document.querySelectorAll(
+            ".search-dropdown-item[data-index]"
+          );
+          if (selectedSearchIndex >= 0 && items[selectedSearchIndex]) {
+            items[selectedSearchIndex].scrollIntoView({
+              block: "nearest",
+            });
           }
         }
-        
-        const siblingConnection = domElementCache.get(`conn-${parentPos.id}-${sibling.id}`);
-        if(siblingConnection){
-          siblingConnection.classList.remove('animating','animated');
-          siblingConnection.style.stroke='var(--border-light)';
-          siblingConnection.style.strokeWidth='1';
+
+        // Main search function with keyboard navigation support
+        window.mainSearch = function () {
+          const query = document
+            .getElementById("mainSearch")
+            .value.toLowerCase()
+            .trim();
+          const dropdown = document.getElementById("searchDropdown");
+
+          if (query.length < 2) {
+            dropdown.innerHTML = "";
+            dropdown.classList.remove("visible");
+            selectedSearchIndex = -1;
+            mainSearchResults = [];
+            return;
+          }
+
+          mainSearchResults = allNodes().filter(
+            (n) =>
+              n.name.toLowerCase().includes(query) ||
+              n.person?.toLowerCase().includes(query)
+          );
+
+          mainSearchResults.sort((a, b) =>
+            extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+          );
+
+          dropdown.innerHTML = "";
+
+          const maxResults = 8;
+          mainSearchResults.slice(0, maxResults).forEach((hit, index) => {
+            const item = document.createElement("div");
+            item.className = "search-dropdown-item";
+            item.dataset.index = index;
+            item.innerHTML = `
+              <div>${highlight(hit.name, query)}</div>
+              ${
+                hit.person
+                  ? `<div style='font-size:.8rem;color:var(--text-secondary)'>${highlight(
+                      hit.person,
+                      query
+                    )}</div>`
+                  : ""
+              }
+            `;
+            item.onclick = () => {
+              selectSearchResult(index);
+            };
+            dropdown.appendChild(item);
+          });
+
+          if (mainSearchResults.length > maxResults) {
+            const moreItem = document.createElement("div");
+            moreItem.className = "search-dropdown-item";
+            moreItem.style.fontStyle = "italic";
+            moreItem.style.color = "var(--text-secondary)";
+            moreItem.textContent = `... und ${
+              mainSearchResults.length - maxResults
+            } weitere`;
+            dropdown.appendChild(moreItem);
+          }
+
+          selectedSearchIndex = -1;
+          dropdown.classList.add("visible");
+        };
+
+        // Keyboard navigation for search
+        window.handleSearchKeydown = function (e) {
+          const searchInput = document.getElementById("mainSearch");
+          const dropdown = document.getElementById("searchDropdown");
+
+          switch (e.key) {
+            case "ArrowDown":
+              e.preventDefault();
+              if (mainSearchResults.length === 0) return;
+              selectedSearchIndex = Math.min(
+                selectedSearchIndex + 1,
+                mainSearchResults.length - 1
+              );
+              updateSearchSelection();
+              scrollToSearchItem();
+              break;
+
+            case "ArrowUp":
+              e.preventDefault();
+              if (mainSearchResults.length === 0) return;
+              selectedSearchIndex = Math.max(selectedSearchIndex - 1, -1);
+              updateSearchSelection();
+              scrollToSearchItem();
+              break;
+
+            case "Enter":
+              e.preventDefault();
+              if (
+                selectedSearchIndex >= 0 &&
+                mainSearchResults[selectedSearchIndex]
+              ) {
+                selectSearchResult(selectedSearchIndex);
+              }
+              break;
+
+            case "Escape":
+              e.preventDefault();
+              dropdown.classList.remove("visible");
+              searchInput.blur();
+              selectedSearchIndex = -1;
+              break;
+          }
+        };
+
+        /* === DOM === */
+        const svg = document.getElementById("chartSvg");
+        const container = document.getElementById("chartContainer");
+
+        /* === UTIL === */
+        const easeInOutCubic = (t) =>
+          t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        const wrap = (txt, m) => {
+          const w = txt.split(" "),
+            lines = [];
+          let l = "";
+          w.forEach((word) => {
+            if ((l + " " + word).trim().length > m) {
+              lines.push(l.trim());
+              l = word;
+            } else l += (l ? " " : "") + word;
+          });
+          lines.push(l.trim());
+          return lines;
+        };
+        const count = (n) =>
+          1 + (n.children?.reduce((s, c) => s + count(c), 0) || 0);
+        const allNodes = (n = root, arr = []) => {
+          arr.push(n);
+          n.children?.forEach((c) => allNodes(c, arr));
+          return arr;
+        };
+
+        /* === FILE === */
+        window.loadFile = () => document.getElementById("fileInput").click();
+        document.getElementById("fileInput").addEventListener("change", (e) => {
+          const f = e.target.files[0];
+          if (!f) return;
+          const fr = new FileReader();
+          fr.onload = (ev) => {
+            try {
+              init(JSON.parse(ev.target.result));
+            } catch {
+              alert("Ungültige JSON");
+            }
+          };
+          fr.readAsText(f);
+        });
+
+        /* === DRAG & DROP === */
+        const dropOverlay = document.getElementById("dropOverlay");
+        const chartContainer = document.getElementById("chartContainer");
+        let dragCounter = 0;
+
+        chartContainer.addEventListener("dragenter", (e) => {
+          e.preventDefault();
+          dragCounter++;
+          chartContainer.classList.add("drag-over");
+          dropOverlay.classList.add("visible");
+        });
+        chartContainer.addEventListener("dragover", (e) => e.preventDefault());
+        chartContainer.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          dragCounter--;
+          if (dragCounter === 0) {
+            chartContainer.classList.remove("drag-over");
+            dropOverlay.classList.remove("visible");
+          }
+        });
+        chartContainer.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dragCounter = 0;
+          chartContainer.classList.remove("drag-over");
+          dropOverlay.classList.remove("visible");
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            const file = files[0];
+            if (
+              file.type === "application/json" ||
+              file.name.endsWith(".json")
+            ) {
+              const fr = new FileReader();
+              fr.onload = (ev) => {
+                try {
+                  init(JSON.parse(ev.target.result));
+                } catch {
+                  alert("Ungültige JSON-Datei");
+                }
+              };
+              fr.readAsText(file);
+            } else {
+              alert("Bitte nur JSON-Dateien (.json)");
+            }
+          }
+        });
+
+        /* === DEMO === */
+        const demo = {
+          id: "root",
+          name: "CEO – Very long title needs wrapping",
+          person: "Alice",
+          children: [
+            {
+              id: "s1",
+              name: "Head of Strategy & Transformation",
+              person: "Bob",
+              children: [
+                {
+                  id: "s1a",
+                  name: "Strategic Org Dev",
+                  person: "Carol",
+                  children: [],
+                },
+                {
+                  id: "s1b",
+                  name: "Org Design & Change",
+                  person: "Dan",
+                  children: [],
+                },
+              ],
+            },
+            {
+              id: "it",
+              name: "Chief Digital & Tech Officer",
+              person: "Eve",
+              children: [],
+            },
+          ],
+        };
+        document.addEventListener("DOMContentLoaded", () => init(demo));
+
+        /* === INIT === */
+        function init(data) {
+          root = data;
+          expanded.clear();
+          path.clear();
+          sel = null;
+          pos.clear();
+          expanded.add(root.id);
+          lastUserZoomTime = 0;
+          scale = 1;
+          svg.style.transform = "scale(1)";
+          document.getElementById("nodeCount").textContent = count(root);
+          updateScrollBounds();
+          render();
+          centerView();
         }
-      }
-    });
-  }
-  function createColorMorphEffect(nodeGroup, nodePos){const originalCircle=nodeGroup.querySelector('circle');if(!originalCircle)return;originalCircle.classList.add('node-morphing');setTimeout(()=>{originalCircle.classList.remove('node-morphing')},400)}
 
-  function getNodesBounds(nodes){const xs=nodes.map(n=>n.x*scale);const ys=nodes.map(n=>n.y*scale);return{left:Math.min(...xs)-R*scale,right:Math.max(...xs)+R*scale,top:Math.min(...ys)-R*scale,bottom:Math.max(...ys)+R*scale,width:Math.max(...xs)-Math.min(...xs)+2*R*scale,height:Math.max(...ys)-Math.min(...ys)+2*R*scale}}
-  function getViewportBounds(){return{left:container.scrollLeft,top:container.scrollTop,right:container.scrollLeft+container.clientWidth,bottom:container.scrollTop+container.clientHeight,width:container.clientWidth,height:container.clientHeight}}
-  function smoothScrollTo(left,top){const startLeft=container.scrollLeft;const startTop=container.scrollTop;const deltaLeft=left-startLeft;const deltaTop=top-startTop;const distance=Math.sqrt(deltaLeft*deltaLeft+deltaTop*deltaTop);const minDuration=400;const maxDuration=1200;const duration=Math.max(minDuration,Math.min(maxDuration,distance*2));const startTime=performance.now();function animate(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);const easeProgress=easeInOutCubic(progress);container.scrollLeft=startLeft+deltaLeft*easeProgress;container.scrollTop=startTop+deltaTop*easeProgress;if(progress<1)requestAnimationFrame(animate)}requestAnimationFrame(animate)}
-  function centerView(){container.scrollTo({left:(svg.clientWidth*scale-container.clientWidth)/2,top:(svg.clientHeight*scale-container.clientHeight)/2,behavior:'auto'})}
-  function updateScrollBounds(){const svgWidth=parseFloat(svg.getAttribute('width'))||1000;const svgHeight=parseFloat(svg.getAttribute('height'))||1000;const scaledWidth=svgWidth*scale;const scaledHeight=svgHeight*scale;const container=document.getElementById('chartContainer');const minWidth=Math.max(scaledWidth,container.clientWidth);const minHeight=Math.max(scaledHeight,container.clientHeight);svg.style.minWidth=minWidth+'px';svg.style.minHeight=minHeight+'px';document.getElementById('zoomLevel').textContent=Math.round(scale*100)}
+        /* === LAYOUT === */
+        function layout(node, x = PAD, y = PAD, arr = []) {
+          const lines = wrap(node.name, MAX_CHARS);
+          const height = BASE_H + (lines.length - 1) * LH;
+          const p = { id: node.id, x, y, node, lines, height };
+          arr.push(p);
+          pos.set(node.id, p);
+          COL_W = Math.max(
+            COL_W,
+            Math.max(...lines.map((l) => l.length)) * 7 + 200
+          );
 
-  /* === PAN & ZOOM === */
-  let isPan=false,startX=0,startY=0,sLeft=0,sTop=0;
-  container.addEventListener('mousedown',e=>{if(e.button!==0)return;isPan=true;container.style.cursor='grabbing';startX=e.pageX;startY=e.pageY;sLeft=container.scrollLeft;sTop=container.scrollTop});
-  document.addEventListener('mouseup',()=>{isPan=false;container.style.cursor='default'});
-  container.addEventListener('mousemove',e=>{if(!isPan)return;container.scrollLeft=sLeft-(e.pageX-startX);container.scrollTop=sTop-(e.pageY-startY)});
-  container.addEventListener('wheel',e=>{if(!e.ctrlKey)return;	e.preventDefault();const isZoomIn=e.deltaY<0;lastUserZoomTime=Date.now();const currentPercent=Math.round(scale*100);const targetPercent=isZoomIn?Math.ceil(currentPercent/10)*10+10:Math.floor(currentPercent/10)*10-10;const newScale=Math.min(Math.max(targetPercent/100,0.4),2);scale=newScale;svg.style.transform=`scale(${scale})`;updateScrollBounds();},{passive:false});
+          if (expanded.has(node.id) && node.children?.length) {
+            // 🚀 OPTIMIERT: Pre-calculate alle Child-Heights in einem Batch - O(n) statt O(n²)
+            const childHeights = node.children.map((c) => {
+              const childLines = wrap(c.name, MAX_CHARS);
+              return BASE_H + (childLines.length - 1) * LH;
+            });
 
-  /* === EXPORT MODAL === */
-  window.openExportModal=()=>{document.getElementById('exportModal').classList.add('open');document.getElementById('exportSearch').focus();selectedSearchNode=null;selectedExportNode=null;updateExportList()};
-  window.closeExportModal=()=>document.getElementById('exportModal').classList.remove('open');
-  const extractSortKey=name=>{if(!name||typeof name!=='string')return '';const lastDash=name.lastIndexOf('-');return lastDash>-1?name.substring(0,lastDash).trim():name.trim()};
-  window.exportSearch=()=>{const q=document.getElementById('exportSearch').value.toLowerCase().trim();const res=document.getElementById('exportResults');if(q.length<2){res.innerHTML='';return;}const hits=allNodes().filter(n=>n.name.toLowerCase().includes(q)||n.person?.toLowerCase().includes(q));hits.sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));res.innerHTML='';hits.forEach(h=>{const d=document.createElement('div');d.className='search-result'+(selectedSearchNode?.id===h.id?' selected':'');d.innerHTML=`<div>${highlight(h.name,q)}</div>${h.person?`<div style='font-size:.8rem;color:var(--text-secondary)'>${highlight(h.person,q)}</div>`:''}`;d.onclick=()=>{selectedSearchNode=h;updateSearchSelection()};res.appendChild(d)})};
-  const highlight=(t,q)=>t.replace(new RegExp(q,'gi'),m=>`<span class='search-match'>${m}</span>`);
-  window.addToExportList=()=>{if(selectedSearchNode){exportList.add(selectedSearchNode);updateExportList();updateSearchSelection()}};
-  window.removeFromExportList=()=>{if(selectedExportNode){exportList.delete(selectedExportNode);updateExportList();updateExportSelection()}};
-  function updateSearchSelection(){Array.from(document.getElementById('exportResults').children).forEach(c=>c.classList.remove('selected'));if(selectedSearchNode){Array.from(document.getElementById('exportResults').children).forEach(c=>{if(c.textContent.includes(selectedSearchNode.name))c.classList.add('selected')})}}
-  function updateExportSelection(){Array.from(document.getElementById('exportList').children).forEach(c=>c.classList.remove('selected'));if(selectedExportNode){Array.from(document.getElementById('exportList').children).forEach(c=>{if(c.textContent.includes(selectedExportNode.name))c.classList.add('selected')})}}
-  function updateExportList(){const list=document.getElementById('exportList');const sortedList=Array.from(exportList).sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));list.innerHTML='';sortedList.forEach(node=>{const d=document.createElement('div');d.className='search-result';d.innerHTML=`<div>${node.name}</div>${node.person?`<div style='font-size:.8rem;color:var(--text-secondary)'>${node.person}</div>`:''}`;d.onclick=()=>{selectedExportNode=node;updateExportSelection()};list.appendChild(d)});document.getElementById('exportCount').textContent=exportList.size}
-  let selectedExportNode=null;
-  window.selectFormat=f=>{format=f;document.getElementById('optHier').classList.toggle('selected',f==='hierarchical');document.getElementById('optFlat').classList.toggle('selected',f==='flat')}
+            // Berechne total height und start position
+            const totalHeight =
+              childHeights.reduce((sum, h) => sum + h + V_GAP, 0) - V_GAP;
+            let cy = y - totalHeight / 2 + childHeights[0] / 2;
 
-  window.doExport=()=>{if(exportList.size===0)return;const sortedList=Array.from(exportList).sort((a,b)=>extractSortKey(a.name).localeCompare(extractSortKey(b.name)));const sections=sortedList.map(node=>format==='hierarchical'?mdHier(node):mdFlat(node));const md=sections.join('\n\n---\n\n');navigator.clipboard.writeText(md);const blob=new Blob([md],{type:'text/markdown'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`multi_export_${Date.now()}.md`;a.click();URL.revokeObjectURL(url);closeExportModal()};
-  const mdHier=(n,l=0)=>`${'  '.repeat(l)}- **${n.name}**${n.person?` - ${n.person}`:''}
-${n.children?.map(c=>mdHier(c,l+1)).join('')}`;
-  const mdFlat=n=>{let i=1,md='';const walk=x=>{md+=`${i++}. **${x.name}**${x.person?` - ${x.person}`:''}
-`;x.children?.forEach(walk)};walk(n);return md};
+            // Layout Children mit pre-calculated heights
+            node.children.forEach((c, i) => {
+              layout(c, x + COL_W, cy, arr);
+              cy += childHeights[i] + V_GAP;
+            });
+          }
+          return arr;
+        }
+        // 🚀 REMOVED: sum() und heightOf() - ersetzt durch O(n) batch calculation
 
-  /* === PUBLIC BUTTONS === */
-  window.collapseSelected=()=>{if(!root)return;const allNodeIds=allNodes().map(n=>n.id);allNodeIds.forEach(id=>expanded.delete(id));expanded.add(root.id);render()};
-})();
-</script>
-</body>
+        /* === PHASE 2: DOM-ELEMENT-CACHE für O(1) Performance === */
+        const domElementCache = new Map(); // Cache für instant DOM-Lookups
+
+        function normalize(arr) {
+          const minX = Math.min(...arr.map((p) => p.x)),
+            minY = Math.min(...arr.map((p) => p.y));
+          const dx = Math.max(PAD - minX, 0),
+            dy = Math.max(PAD - minY, 0);
+          if (dx || dy) {
+            arr.forEach((p) => {
+              p.x += dx;
+              p.y += dy;
+            });
+            pos.forEach((p) => {
+              p.x += dx;
+              p.y += dy;
+            });
+          }
+        }
+
+        /* === RENDER === */
+        function render() {
+          // 🚀 PHASE 2: Cache leeren bei fullRender
+          domElementCache.clear();
+          svg.innerHTML = "";
+          if (!root) return;
+          pos.clear();
+          COL_W = 350;
+
+          const posArr = layout(root);
+          normalize(posArr);
+          updatePath();
+
+          const w = Math.max(...posArr.map((p) => p.x)) + COL_W,
+            h = Math.max(...posArr.map((p) => p.y)) + PAD;
+          svg.setAttribute("width", w);
+          svg.setAttribute("height", h);
+          svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
+          const ns = "http://www.w3.org/2000/svg",
+            gE = document.createElementNS(ns, "g"),
+            gN = document.createElementNS(ns, "g");
+          svg.append(gE, gN);
+
+          posArr.forEach(
+            (p) =>
+              expanded.has(p.id) &&
+              p.node.children?.forEach((c) => drawEdge(gE, p, pos.get(c.id)))
+          );
+          posArr.forEach((p) => drawNode(gN, p));
+
+          updateScrollBounds();
+          ensureVisible();
+        }
+
+        function updatePath() {
+          path.clear();
+          if (!sel) return;
+          let p = pos.get(sel);
+          while (p) {
+            path.add(p.id);
+            p = findParent(p.id);
+          }
+        }
+        const findParent = (id) => {
+          for (const p of pos.values()) {
+            if (p.node.children?.some((c) => c.id === id)) return p;
+          }
+          return null;
+        };
+        const collapseSiblings = (id) => {
+          const parent = findParent(id);
+          if (parent) {
+            parent.node.children?.forEach((sibling) => {
+              if (sibling.id !== id && expanded.has(sibling.id)) {
+                collapseNodeAndChildren(sibling.id);
+              }
+            });
+          }
+        };
+        const collapseNodeAndChildren = (id) => {
+          expanded.delete(id);
+          const node = pos.get(id)?.node;
+          node?.children?.forEach((child) => collapseNodeAndChildren(child.id));
+        };
+
+        /* === DRAW === */
+        function drawEdge(g, parent, child) {
+          if (!child) return;
+          const ns = "http://www.w3.org/2000/svg",
+            edge = document.createElementNS(ns, "path");
+          const x1 = parent.x + R,
+            y1 = parent.y,
+            x2 = child.x - R,
+            y2 = child.y,
+            m = (x1 + x2) / 2;
+          edge.setAttribute(
+            "d",
+            `M ${x1} ${y1} C ${m} ${y1}, ${m} ${y2}, ${x2} ${y2}`
+          );
+          edge.setAttribute(
+            "class",
+            "connection" +
+              (path.has(parent.id) && path.has(child.id) ? "" : " inactive")
+          );
+
+          // 🚀 PHASE 2: Eindeutige ID für instant lookup
+          edge.id = `conn-${parent.id}-${child.id}`;
+          domElementCache.set(`conn-${parent.id}-${child.id}`, edge);
+
+          g.appendChild(edge);
+        }
+
+        function drawNode(g, p) {
+          const ns = "http://www.w3.org/2000/svg",
+            grp = document.createElementNS(ns, "g");
+          grp.setAttribute("transform", `translate(${p.x},${p.y})`);
+
+          // 🚀 PHASE 2: Eindeutige ID für instant lookup
+          grp.id = `node-${p.id}`;
+          domElementCache.set(`node-${p.id}`, grp);
+          const circ = document.createElementNS(ns, "circle");
+          circ.setAttribute("r", R);
+          circ.setAttribute(
+            "class",
+            "node-circle" +
+              (sel === p.id ? " active" : path.has(p.id) ? " in-path" : "")
+          );
+          grp.appendChild(circ);
+          const txt = document.createElementNS(ns, "text");
+          txt.setAttribute("x", R + 10);
+          txt.setAttribute("y", (-(p.lines.length - 1) * LH) / 2);
+          txt.setAttribute(
+            "class",
+            "node-text" + (!path.has(p.id) && sel !== p.id ? " inactive" : "")
+          );
+          p.lines.forEach((l, i) => {
+            const ts = document.createElementNS(ns, "tspan");
+            ts.setAttribute("x", R + 10);
+            ts.setAttribute("dy", i ? LH : 0);
+            ts.textContent = l;
+            txt.appendChild(ts);
+          });
+          grp.appendChild(txt);
+          if (p.node.person) {
+            const pers = document.createElementNS(ns, "text");
+            pers.setAttribute("x", R + 10);
+            pers.setAttribute("y", (p.lines.length * LH) / 2 + 12);
+            pers.setAttribute("class", "node-person");
+            pers.textContent = p.node.person;
+            grp.appendChild(pers);
+          }
+          if (p.node.children?.length) {
+            const indicator = document.createElementNS(ns, "circle");
+            indicator.setAttribute("cx", 0);
+            indicator.setAttribute("cy", 0);
+            indicator.setAttribute("r", 24);
+            indicator.setAttribute(
+              "class",
+              "expand-indicator" + (expanded.has(p.id) ? "" : " collapsed")
+            );
+            grp.appendChild(indicator);
+          }
+          grp.onclick = () => {
+            if (p.node.children?.length) {
+              if (expanded.has(p.id)) {
+                const wasExpanded = true;
+                collapseNodeAndChildren(p.id);
+                sel = p.id;
+                render();
+                if (wasExpanded) checkAutoZoomIn(p.id);
+              } else {
+                resetSisterNodes(p.id);
+                collapseSiblings(p.id);
+                expanded.add(p.id);
+                sel = p.id;
+                render();
+                animateToClickedNode(p.id);
+              }
+            } else {
+              resetSisterNodes(p.id);
+              collapseSiblings(p.id);
+              sel = p.id;
+              render();
+              animateToClickedNode(p.id);
+            }
+          };
+          g.appendChild(grp);
+        }
+
+        /* === VIEWPORT HANDLING === */
+        function ensureVisible() {
+          if (!sel) return;
+          const p = pos.get(sel);
+          if (!p) return;
+          if (!expanded.has(p.id) || !p.node.children?.length) return;
+          const directChildren = p.node.children
+            .map((child) => pos.get(child.id))
+            .filter(Boolean);
+          if (directChildren.length === 0) return;
+          if (Date.now() - lastUserZoomTime < 2000) return;
+          let currentScale = scale;
+          let bounds = getNodesBounds([p, ...directChildren]);
+          const vp = getViewportBounds();
+          const margin = 80;
+          const maxZoomOut = 0.4;
+          while (currentScale >= maxZoomOut) {
+            const scaledBounds = {
+              ...bounds,
+              left: (bounds.left * currentScale) / scale,
+              right: (bounds.right * currentScale) / scale,
+              top: (bounds.top * currentScale) / scale,
+              bottom: (bounds.bottom * currentScale) / scale,
+              width: (bounds.width * currentScale) / scale,
+              height: (bounds.height * currentScale) / scale,
+            };
+            if (
+              scaledBounds.width <= vp.width - 2 * margin &&
+              scaledBounds.height <= vp.height - 2 * margin
+            ) {
+              if (currentScale !== scale) {
+                animateZoom(currentScale);
+                setTimeout(
+                  () => ensureVisibleAfterZoom([p, ...directChildren]),
+                  300
+                );
+              } else {
+                ensureVisibleAfterZoom([p, ...directChildren]);
+              }
+              return;
+            }
+            currentScale -= 0.1;
+          }
+          ensureVisibleAfterZoom([p, ...directChildren]);
+        }
+        function ensureVisibleAfterZoom(nodes) {
+          const bounds = getNodesBounds(nodes);
+          const vp = getViewportBounds();
+          const margin = 80;
+          const needsAdjust =
+            bounds.left < vp.left + margin ||
+            bounds.right > vp.right - margin ||
+            bounds.top < vp.top + margin ||
+            bounds.bottom > vp.bottom - margin;
+          if (needsAdjust) {
+            const centerX = bounds.left + bounds.width / 2;
+            const centerY = bounds.top + bounds.height / 2;
+            const targetLeft = centerX - vp.width / 2;
+            const targetTop = centerY - vp.height / 2;
+            smoothScrollTo(targetLeft, targetTop);
+          }
+        }
+        function animateZoom(targetScale) {
+          const startScale = scale;
+          const duration = 300;
+          const startTime = performance.now();
+          function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = easeInOutCubic(progress);
+            scale = startScale + (targetScale - startScale) * easeProgress;
+            svg.style.transform = `scale(${scale})`;
+            updateScrollBounds();
+            if (progress < 1) requestAnimationFrame(animate);
+          }
+          requestAnimationFrame(animate);
+        }
+        function checkAutoZoomIn(collapsedNodeId) {
+          if (Date.now() - lastUserZoomTime < 2000) return;
+          const p = pos.get(collapsedNodeId);
+          if (!p || !p.node.children?.length) return;
+          const childCount = p.node.children.length;
+          const hadManyChildren = childCount >= 3;
+          if (!hadManyChildren) return;
+          const vp = getViewportBounds();
+          const currentVisibleNodes = Array.from(pos.values()).filter(
+            (node) => {
+              const x = node.x * scale;
+              const y = node.y * scale;
+              return (
+                x >= vp.left - 100 &&
+                x <= vp.right + 100 &&
+                y >= vp.top - 100 &&
+                y <= vp.bottom + 100
+              );
+            }
+          );
+          const density = currentVisibleNodes.length;
+          const maxZoomIn = 2;
+          const targetScale = Math.min(
+            maxZoomIn,
+            scale * Math.min(1.3, 1 + childCount * 0.1)
+          );
+          if (targetScale > scale * 1.1) {
+            setTimeout(() => animateZoom(targetScale), 200);
+          }
+        }
+        function animateToClickedNode(nodeId) {
+          setTimeout(() => {
+            const nodePos = pos.get(nodeId);
+            if (!nodePos) return;
+            const parentPos = findParent(nodeId);
+            if (!parentPos) return;
+
+            // 🚀 PHASE 2: getElementById statt querySelector - O(1) statt O(n)
+            const nodeGroup = domElementCache.get(`node-${nodeId}`);
+            const connection = domElementCache.get(
+              `conn-${parentPos.id}-${nodeId}`
+            );
+
+            if (connection) {
+              connection.classList.add("animating");
+              setTimeout(() => {
+                connection.classList.remove("animating");
+                connection.classList.add("animated");
+              }, 800);
+            }
+
+            if (nodeGroup) {
+              setTimeout(() => createColorMorphEffect(nodeGroup, nodePos), 800);
+            }
+          }, 100);
+        }
+        function resetSisterNodes(nodeId) {
+          const parentPos = findParent(nodeId);
+          if (!parentPos) return;
+
+          parentPos.node.children?.forEach((sibling) => {
+            if (sibling.id !== nodeId) {
+              // 🚀 PHASE 2: Cache-Lookup statt querySelector - O(1) statt O(n)
+              const siblingGroup = domElementCache.get(`node-${sibling.id}`);
+              if (siblingGroup) {
+                const siblingCircle = siblingGroup.querySelector("circle");
+                if (siblingCircle) {
+                  siblingCircle.style.fill = "#ffffff";
+                  siblingCircle.style.stroke = "var(--border-light)";
+                  siblingCircle.classList.remove("node-morphing");
+                }
+              }
+
+              const siblingConnection = domElementCache.get(
+                `conn-${parentPos.id}-${sibling.id}`
+              );
+              if (siblingConnection) {
+                siblingConnection.classList.remove("animating", "animated");
+                siblingConnection.style.stroke = "var(--border-light)";
+                siblingConnection.style.strokeWidth = "1";
+              }
+            }
+          });
+        }
+        function createColorMorphEffect(nodeGroup, nodePos) {
+          const originalCircle = nodeGroup.querySelector("circle");
+          if (!originalCircle) return;
+          originalCircle.classList.add("node-morphing");
+          setTimeout(() => {
+            originalCircle.classList.remove("node-morphing");
+          }, 400);
+        }
+
+        function getNodesBounds(nodes) {
+          const xs = nodes.map((n) => n.x * scale);
+          const ys = nodes.map((n) => n.y * scale);
+          return {
+            left: Math.min(...xs) - R * scale,
+            right: Math.max(...xs) + R * scale,
+            top: Math.min(...ys) - R * scale,
+            bottom: Math.max(...ys) + R * scale,
+            width: Math.max(...xs) - Math.min(...xs) + 2 * R * scale,
+            height: Math.max(...ys) - Math.min(...ys) + 2 * R * scale,
+          };
+        }
+        function getViewportBounds() {
+          return {
+            left: container.scrollLeft,
+            top: container.scrollTop,
+            right: container.scrollLeft + container.clientWidth,
+            bottom: container.scrollTop + container.clientHeight,
+            width: container.clientWidth,
+            height: container.clientHeight,
+          };
+        }
+        function smoothScrollTo(left, top) {
+          const startLeft = container.scrollLeft;
+          const startTop = container.scrollTop;
+          const deltaLeft = left - startLeft;
+          const deltaTop = top - startTop;
+          const distance = Math.sqrt(
+            deltaLeft * deltaLeft + deltaTop * deltaTop
+          );
+          const minDuration = 400;
+          const maxDuration = 1200;
+          const duration = Math.max(
+            minDuration,
+            Math.min(maxDuration, distance * 2)
+          );
+          const startTime = performance.now();
+          function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = easeInOutCubic(progress);
+            container.scrollLeft = startLeft + deltaLeft * easeProgress;
+            container.scrollTop = startTop + deltaTop * easeProgress;
+            if (progress < 1) requestAnimationFrame(animate);
+          }
+          requestAnimationFrame(animate);
+        }
+        function centerView() {
+          container.scrollTo({
+            left: (svg.clientWidth * scale - container.clientWidth) / 2,
+            top: (svg.clientHeight * scale - container.clientHeight) / 2,
+            behavior: "auto",
+          });
+        }
+        function updateScrollBounds() {
+          const svgWidth = parseFloat(svg.getAttribute("width")) || 1000;
+          const svgHeight = parseFloat(svg.getAttribute("height")) || 1000;
+          const scaledWidth = svgWidth * scale;
+          const scaledHeight = svgHeight * scale;
+          const container = document.getElementById("chartContainer");
+          const minWidth = Math.max(scaledWidth, container.clientWidth);
+          const minHeight = Math.max(scaledHeight, container.clientHeight);
+          svg.style.minWidth = minWidth + "px";
+          svg.style.minHeight = minHeight + "px";
+          document.getElementById("zoomLevel").textContent = Math.round(
+            scale * 100
+          );
+        }
+
+        /* === PAN & ZOOM === */
+        let isPan = false,
+          startX = 0,
+          startY = 0,
+          sLeft = 0,
+          sTop = 0;
+        container.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          isPan = true;
+          container.style.cursor = "grabbing";
+          startX = e.pageX;
+          startY = e.pageY;
+          sLeft = container.scrollLeft;
+          sTop = container.scrollTop;
+        });
+        document.addEventListener("mouseup", () => {
+          isPan = false;
+          container.style.cursor = "default";
+        });
+        container.addEventListener("mousemove", (e) => {
+          if (!isPan) return;
+          container.scrollLeft = sLeft - (e.pageX - startX);
+          container.scrollTop = sTop - (e.pageY - startY);
+        });
+        container.addEventListener(
+          "wheel",
+          (e) => {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+            const isZoomIn = e.deltaY < 0;
+            lastUserZoomTime = Date.now();
+            const currentPercent = Math.round(scale * 100);
+            const targetPercent = isZoomIn
+              ? Math.ceil(currentPercent / 10) * 10 + 10
+              : Math.floor(currentPercent / 10) * 10 - 10;
+            const newScale = Math.min(Math.max(targetPercent / 100, 0.4), 2);
+            scale = newScale;
+            svg.style.transform = `scale(${scale})`;
+            updateScrollBounds();
+          },
+          { passive: false }
+        );
+
+        /* === EXPORT MODAL === */
+        window.openExportModal = () => {
+          document.getElementById("exportModal").classList.add("open");
+          document.getElementById("exportSearch").focus();
+          selectedSearchNode = null;
+          selectedExportNode = null;
+          exportSearchResults = [];
+          exportSearchSelectedIndex = -1;
+          exportListSelectedIndex = -1;
+          currentExportFocus = "search";
+          updateExportList();
+        };
+        window.closeExportModal = () =>
+          document.getElementById("exportModal").classList.remove("open");
+        const extractSortKey = (name) => {
+          if (!name || typeof name !== "string") return "";
+          const lastDash = name.lastIndexOf("-");
+          return lastDash > -1
+            ? name.substring(0, lastDash).trim()
+            : name.trim();
+        };
+        window.exportSearch = () => {
+          const q = document
+            .getElementById("exportSearch")
+            .value.toLowerCase()
+            .trim();
+          const res = document.getElementById("exportResults");
+
+          if (q.length < 2) {
+            res.innerHTML = "";
+            exportSearchResults = [];
+            exportSearchSelectedIndex = -1;
+            selectedSearchNode = null;
+            return;
+          }
+
+          const hits = allNodes().filter(
+            (n) =>
+              n.name.toLowerCase().includes(q) ||
+              n.person?.toLowerCase().includes(q)
+          );
+          hits.sort((a, b) =>
+            extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+          );
+          exportSearchResults = hits;
+          exportSearchSelectedIndex = -1;
+
+          res.innerHTML = "";
+          hits.forEach((h, index) => {
+            const d = document.createElement("div");
+            d.className = "search-result";
+            d.innerHTML = `<div>${highlight(h.name, q)}</div>${
+              h.person
+                ? `<div style='font-size:.8rem;color:var(--text-secondary)'>${highlight(
+                    h.person,
+                    q
+                  )}</div>`
+                : ""
+            }`;
+            d.onclick = () => {
+              selectedSearchNode = h;
+              exportSearchSelectedIndex = index;
+              updateSearchSelection();
+            };
+            d.onmouseenter = () => {
+              exportSearchSelectedIndex = index;
+              selectedSearchNode = h;
+              updateExportSearchSelection();
+            };
+            res.appendChild(d);
+          });
+        };
+
+        function updateExportSearchSelection() {
+          const items = document
+            .getElementById("exportResults")
+            .querySelectorAll(".search-result");
+          items.forEach((item, index) => {
+            item.classList.toggle(
+              "selected",
+              index === exportSearchSelectedIndex
+            );
+          });
+        }
+
+        /* === MISSING EXPORT FUNCTIONS === */
+        window.addToExportList = () => {
+          if (selectedSearchNode) {
+            exportList.add(selectedSearchNode);
+            updateExportList();
+            updateSearchSelection();
+          }
+        };
+        window.removeFromExportList = () => {
+          if (selectedExportNode) {
+            exportList.delete(selectedExportNode);
+            const sortedList = Array.from(exportList).sort((a, b) =>
+              extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+            );
+
+            // Adjust selection after removal
+            if (exportListSelectedIndex >= sortedList.length) {
+              exportListSelectedIndex = Math.max(0, sortedList.length - 1);
+            }
+
+            selectedExportNode =
+              sortedList.length > 0
+                ? sortedList[exportListSelectedIndex]
+                : null;
+            updateExportList();
+            updateExportSelection();
+          }
+        };
+
+        function updateSearchSelection() {
+          Array.from(document.getElementById("exportResults").children).forEach(
+            (c) => c.classList.remove("selected")
+          );
+          if (selectedSearchNode) {
+            Array.from(
+              document.getElementById("exportResults").children
+            ).forEach((c) => {
+              if (c.textContent.includes(selectedSearchNode.name))
+                c.classList.add("selected");
+            });
+          }
+        }
+
+        function updateExportSelection() {
+          Array.from(document.getElementById("exportList").children).forEach(
+            (c) => c.classList.remove("selected")
+          );
+          if (selectedExportNode) {
+            Array.from(document.getElementById("exportList").children).forEach(
+              (c) => {
+                if (c.textContent.includes(selectedExportNode.name))
+                  c.classList.add("selected");
+              }
+            );
+          }
+        }
+
+        function updateExportList() {
+          const list = document.getElementById("exportList");
+          const sortedList = Array.from(exportList).sort((a, b) =>
+            extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+          );
+          list.innerHTML = "";
+
+          sortedList.forEach((node, index) => {
+            const d = document.createElement("div");
+            d.className = "search-result";
+            d.innerHTML = `<div>${node.name}</div>${
+              node.person
+                ? `<div style='font-size:.8rem;color:var(--text-secondary)'>${node.person}</div>`
+                : ""
+            }`;
+            d.onclick = () => {
+              selectedExportNode = node;
+              exportListSelectedIndex = index;
+              updateExportSelection();
+            };
+            d.onmouseenter = () => {
+              exportListSelectedIndex = index;
+              selectedExportNode = node;
+              updateExportListSelection();
+            };
+            list.appendChild(d);
+          });
+
+          document.getElementById("exportCount").textContent = exportList.size;
+
+          // Reset selection if list changed
+          if (exportListSelectedIndex >= sortedList.length) {
+            exportListSelectedIndex = -1;
+            selectedExportNode = null;
+          }
+        }
+
+        function updateExportListSelection() {
+          const items = document
+            .getElementById("exportList")
+            .querySelectorAll(".search-result");
+          items.forEach((item, index) => {
+            item.classList.toggle(
+              "selected",
+              index === exportListSelectedIndex
+            );
+          });
+        }
+
+        /* === MORE EXPORT FUNCTIONS === */
+        window.selectFormat = (fmt) => {
+          format = fmt;
+          document
+            .getElementById("optHier")
+            .classList.toggle("selected", fmt === "hierarchical");
+          document
+            .getElementById("optFlat")
+            .classList.toggle("selected", fmt === "flat");
+        };
+
+        window.doExport = () => {
+          if (exportList.size === 0) {
+            alert("Keine Abteilungen ausgewählt");
+            return;
+          }
+          const nodes = Array.from(exportList);
+          let output = "";
+          if (format === "hierarchical") {
+            output = "# Organisationsstruktur Export\n\n";
+            nodes.forEach((node) => {
+              const path = findHierarchyPath(node);
+              output += `## ${node.name}\n`;
+              if (node.person) output += `**Leitung:** ${node.person}\n\n`;
+              output += `**Pfad:** ${path.join(" → ")}\n\n`;
+            });
+          } else {
+            output = "# Abteilungen Export\n\n";
+            nodes.forEach((node) => {
+              output += `- **${node.name}**`;
+              if (node.person) output += ` (${node.person})`;
+              output += "\n";
+            });
+          }
+          navigator.clipboard
+            .writeText(output)
+            .then(() => alert("Export in Zwischenablage kopiert!"))
+            .catch(() => alert("Export fehlgeschlagen"));
+        };
+
+        function findHierarchyPath(targetNode, current = root, path = []) {
+          if (current.id === targetNode.id) return [...path, current.name];
+          if (current.children) {
+            for (const child of current.children) {
+              const result = findHierarchyPath(targetNode, child, [
+                ...path,
+                current.name,
+              ]);
+              if (result.length > 0) return result;
+            }
+          }
+          return [];
+        }
+
+        /* === KEYBOARD NAVIGATION === */
+        let exportSearchResults = [];
+        let exportSearchSelectedIndex = -1;
+        let exportListSelectedIndex = -1;
+        /* === SEARCH STATE AND HELPERS === */
+
+        function expandPathToNode(targetNode) {
+          // Find the path from root to target node
+          const path = findPathToNode(targetNode);
+
+          // Expand all parent nodes in the path
+          path.forEach((node) => {
+            if (node.id !== targetNode.id) {
+              expanded.add(node.id);
+            }
+          });
+        }
+
+        function findPathToNode(targetNode, current = root, path = []) {
+          if (current.id === targetNode.id) {
+            return [...path, current];
+          }
+
+          if (current.children) {
+            for (const child of current.children) {
+              const result = findPathToNode(targetNode, child, [
+                ...path,
+                current,
+              ]);
+              if (result.length > 0) {
+                return result;
+              }
+            }
+          }
+
+          return [];
+        }
+
+        function selectSearchResult(index) {
+          if (index < 0 || index >= mainSearchResults.length) return;
+
+          const selectedNode = mainSearchResults[index];
+          sel = selectedNode.id;
+
+          // Expand parent nodes to show the path
+          expandPathToNode(selectedNode);
+
+          render();
+          animateToClickedNode(selectedNode.id);
+
+          // Hide dropdown and clear search
+          document.getElementById("searchDropdown").classList.remove("visible");
+          document.getElementById("mainSearch").value = "";
+          selectedSearchIndex = -1;
+          mainSearchResults = [];
+        }
+
+        function updateSearchSelection() {
+          const items = document.querySelectorAll(".search-dropdown-item");
+          items.forEach((item, index) => {
+            if (item.dataset.index !== undefined) {
+              item.classList.toggle(
+                "selected",
+                parseInt(item.dataset.index) === selectedSearchIndex
+              );
+            }
+          });
+        }
+
+        function scrollToSearchItem() {
+          const items = document.querySelectorAll(
+            ".search-dropdown-item[data-index]"
+          );
+          if (selectedSearchIndex >= 0 && items[selectedSearchIndex]) {
+            items[selectedSearchIndex].scrollIntoView({ block: "nearest" });
+          }
+        }
+        let currentExportFocus = "search"; // 'search' oder 'list'
+
+        window.handleExportKeydown = (e) => {
+          switch (e.key) {
+            case "ArrowDown":
+              e.preventDefault();
+              if (exportSearchResults.length === 0) return;
+              exportSearchSelectedIndex = Math.min(
+                exportSearchSelectedIndex + 1,
+                exportSearchResults.length - 1
+              );
+              selectedSearchNode =
+                exportSearchResults[exportSearchSelectedIndex];
+              updateExportSearchSelection();
+              scrollToSelectedExportItem("search");
+              break;
+
+            case "ArrowUp":
+              e.preventDefault();
+              if (exportSearchResults.length === 0) return;
+              exportSearchSelectedIndex = Math.max(
+                exportSearchSelectedIndex - 1,
+                -1
+              );
+              selectedSearchNode =
+                exportSearchSelectedIndex >= 0
+                  ? exportSearchResults[exportSearchSelectedIndex]
+                  : null;
+              updateExportSearchSelection();
+              scrollToSelectedExportItem("search");
+              break;
+
+            case "ArrowRight":
+              e.preventDefault();
+              if (selectedSearchNode) {
+                addToExportList();
+              }
+              break;
+
+            case "Enter":
+              e.preventDefault();
+              if (selectedSearchNode) {
+                addToExportList();
+              }
+              break;
+
+            case "Tab":
+              e.preventDefault();
+              currentExportFocus = "list";
+              document.getElementById("exportList").focus();
+              if (exportList.size > 0 && exportListSelectedIndex === -1) {
+                exportListSelectedIndex = 0;
+                const sortedList = Array.from(exportList).sort((a, b) =>
+                  extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+                );
+                selectedExportNode = sortedList[0];
+                updateExportListSelection();
+              }
+              break;
+
+            case "Escape":
+              e.preventDefault();
+              closeExportModal();
+              break;
+          }
+        };
+
+        function scrollToSelectedExportItem(type) {
+          const container =
+            type === "search"
+              ? document.getElementById("exportResults")
+              : document.getElementById("exportList");
+          const selectedIndex =
+            type === "search"
+              ? exportSearchSelectedIndex
+              : exportListSelectedIndex;
+
+          if (selectedIndex >= 0) {
+            const items = container.querySelectorAll(".search-result");
+            if (items[selectedIndex]) {
+              items[selectedIndex].scrollIntoView({ block: "nearest" });
+            }
+          }
+        }
+
+        // Export-Liste Keyboard-Navigation
+        document
+          .getElementById("exportList")
+          .addEventListener("keydown", (e) => {
+            const sortedList = Array.from(exportList).sort((a, b) =>
+              extractSortKey(a.name).localeCompare(extractSortKey(b.name))
+            );
+
+            if (sortedList.length === 0) return;
+
+            switch (e.key) {
+              case "ArrowDown":
+                e.preventDefault();
+                exportListSelectedIndex = Math.min(
+                  exportListSelectedIndex + 1,
+                  sortedList.length - 1
+                );
+                selectedExportNode = sortedList[exportListSelectedIndex];
+                updateExportListSelection();
+                scrollToSelectedExportItem("list");
+                break;
+
+              case "ArrowUp":
+                e.preventDefault();
+                exportListSelectedIndex = Math.max(
+                  exportListSelectedIndex - 1,
+                  0
+                );
+                selectedExportNode = sortedList[exportListSelectedIndex];
+                updateExportListSelection();
+                scrollToSelectedExportItem("list");
+                break;
+
+              case "ArrowLeft":
+                e.preventDefault();
+                if (selectedExportNode) {
+                  removeFromExportList();
+                }
+                break;
+
+              case "Delete":
+              case "Backspace":
+                e.preventDefault();
+                if (selectedExportNode) {
+                  removeFromExportList();
+                }
+                break;
+
+              case "Tab":
+                e.preventDefault();
+                currentExportFocus = "search";
+                document.getElementById("exportSearch").focus();
+                break;
+
+              case "Escape":
+                e.preventDefault();
+                closeExportModal();
+                break;
+            }
+          });
+
+        // Highlight-Funktion für Suchresultate
+        function highlight(text, query) {
+          if (!query || !text) return text;
+          const regex = new RegExp(
+            `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\$&")})`,
+            "gi"
+          );
+          return text.replace(
+            regex,
+            '<span class="search-highlight">$1</span>'
+          );
+        }
+
+        window.showSearchDropdown = () => {
+          const query = document.getElementById("mainSearch").value;
+          if (query.trim().length >= 2) {
+            document.getElementById("searchDropdown").classList.add("visible");
+          }
+        };
+
+        window.hideSearchDropdown = () => {
+          setTimeout(() => {
+            document
+              .getElementById("searchDropdown")
+              .classList.remove("visible");
+          }, 200);
+        };
+
+        window.collapseSelected = () => {
+          if (!sel) return;
+          const node = pos.get(sel)?.node;
+          if (node && node.children?.length && expanded.has(sel)) {
+            collapseNodeAndChildren(sel);
+            render();
+          }
+        };
+      })();
+    </script>
+  </body>
 </html>
