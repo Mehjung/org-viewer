@@ -746,14 +746,29 @@
           const selectedNode = mainSearchResults[index];
           sel = selectedNode.id;
 
-          // Expand parent nodes to show the path
+          // PHASE 1: Collapse all expanded nodes except root
+          const rootId = root.id;
+          expanded.clear();
+          expanded.add(rootId);
+
+          // PHASE 2: Expand path to selected node
           expandPathToNode(selectedNode);
 
-          // Apply same navigation logic as manual clicks
+          // PHASE 3: Expand the selected node if it has children
+          if (selectedNode.children?.length) {
+            expanded.add(selectedNode.id);
+          }
+
+          // Apply visual effects like manual clicks
           resetSisterNodes(selectedNode.id);
-          collapseSiblings(selectedNode.id);
 
           render();
+
+          // PHASE 4: Force automatic zooming like manual clicks
+          setTimeout(() => {
+            forceEnsureVisible(selectedNode.id);
+          }, 100);
+
           animateToClickedNode(selectedNode.id);
 
           // Hide dropdown and clear search
@@ -1339,6 +1354,56 @@
             const targetTop = centerY - vp.height / 2;
             smoothScrollTo(targetLeft, targetTop);
           }
+        }
+
+        // Force ensure visible for search navigation (ignores timing restrictions)
+        function forceEnsureVisible(nodeId) {
+          if (!nodeId) return;
+          const p = pos.get(nodeId);
+          if (!p) return;
+          if (!expanded.has(p.id) || !p.node.children?.length) return;
+
+          const directChildren = p.node.children
+            .map((child) => pos.get(child.id))
+            .filter(Boolean);
+          if (directChildren.length === 0) return;
+
+          // Same logic as ensureVisible but without timing restrictions
+          let currentScale = scale;
+          let bounds = getNodesBounds([p, ...directChildren]);
+          const vp = getViewportBounds();
+          const margin = 80;
+          const maxZoomOut = 0.4;
+
+          while (currentScale >= maxZoomOut) {
+            const scaledBounds = {
+              ...bounds,
+              left: (bounds.left * currentScale) / scale,
+              right: (bounds.right * currentScale) / scale,
+              top: (bounds.top * currentScale) / scale,
+              bottom: (bounds.bottom * currentScale) / scale,
+              width: (bounds.width * currentScale) / scale,
+              height: (bounds.height * currentScale) / scale,
+            };
+
+            if (
+              scaledBounds.width <= vp.width - 2 * margin &&
+              scaledBounds.height <= vp.height - 2 * margin
+            ) {
+              if (currentScale !== scale) {
+                animateZoom(currentScale);
+                setTimeout(
+                  () => ensureVisibleAfterZoom([p, ...directChildren]),
+                  300
+                );
+              } else {
+                ensureVisibleAfterZoom([p, ...directChildren]);
+              }
+              return;
+            }
+            currentScale -= 0.1;
+          }
+          ensureVisibleAfterZoom([p, ...directChildren]);
         }
         function animateZoom(targetScale) {
           const startScale = scale;
