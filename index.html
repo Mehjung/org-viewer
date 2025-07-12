@@ -1982,38 +1982,6 @@
         let exportListSelectedIndex = -1;
         /* === SEARCH STATE AND HELPERS === */
 
-        function expandPathToNode(targetNode) {
-          // Find the path from root to target node
-          const path = findPathToNode(targetNode);
-
-          // Expand all parent nodes in the path
-          path.forEach((node) => {
-            if (node.id !== targetNode.id) {
-              expanded.add(node.id);
-            }
-          });
-        }
-
-        function findPathToNode(targetNode, current = root, path = []) {
-          if (current.id === targetNode.id) {
-            return [...path, current];
-          }
-
-          if (current.children) {
-            for (const child of current.children) {
-              const result = findPathToNode(targetNode, child, [
-                ...path,
-                current,
-              ]);
-              if (result.length > 0) {
-                return result;
-              }
-            }
-          }
-
-          return [];
-        }
-
         let currentExportFocus = "search"; // 'search' oder 'list'
 
         window.handleExportKeydown = (e) => {
@@ -2047,16 +2015,11 @@
 
             case "Tab":
               e.preventDefault();
-              // From search input: go to search results first
+              // From search input: check if we have search results first
               if (exportSearchResults.length > 0) {
-                console.log(
-                  "Focusing exportResults with",
-                  exportSearchResults.length,
-                  "results"
-                );
+                // Go to search results first
                 const resultsElement = document.getElementById("exportResults");
                 resultsElement.focus();
-                console.log("Focused element:", document.activeElement.id);
                 if (exportSearchSelectedIndex === -1) {
                   exportSearchSelectedIndex = 0;
                   selectedSearchNode = exportSearchResults[0];
@@ -2064,7 +2027,6 @@
                 }
               } else {
                 // No search results: go directly to export list
-                console.log("No search results, focusing export list");
                 currentExportFocus = "list";
                 const exportListElement = document.getElementById("exportList");
                 exportListElement.focus();

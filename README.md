@@ -11,44 +11,26 @@ Ein interaktiver Viewer für Organisationsstrukturen mit Vanilla JavaScript.
 - 📊 Export-Funktionalität
 - 📱 Responsive Design
 
-## E2E Tests mit Vitest & Playwright
+## Tests
 
 ### Installation
 
 ```bash
 npm install
-npm run test:setup
 ```
 
 ### Tests ausführen
 
+Die Tests laufen jetzt über einen integrierten Testrunner:
+
 ```bash
-# Alle E2E Tests ausführen (headless)
-npm run test:e2e
+# Tests starten
+npm test
 
-# Tests mit UI (Browser sichtbar)
-npm run test:e2e:headed
-
-# Tests mit Debug-Modus (langsam + sichtbar)
-npm run test:e2e:debug
-
-# Test UI (interaktiv)
-npm run test:e2e:ui
-
-# Lokalen Server starten (für manuelle Tests)
-npm run serve
-```
-
-### Test-Struktur
-
-```
-tests/
-├── e2e/
-│   ├── setup.js                    # Browser & Server Setup
-│   ├── hierarchy-viewer.test.js    # Haupttests
-│   └── test-data.json             # Test-Daten
-├── vitest.e2e.config.js           # Vitest Konfiguration
-└── test-results/                   # Test-Reports
+# Tests mit spezifischen Optionen
+npm run test:headed     # Browser sichtbar
+npm run test:debug      # Langsam + sichtbar für Debugging
+npm run test:ui         # Interaktive Test UI
 ```
 
 ### Getestete Funktionalitäten
@@ -65,15 +47,14 @@ tests/
 ### Debugging
 
 ```bash
-# Tests mit sichtbarem Browser (Windows/PowerShell)
-npm run test:e2e:headed
+# Tests mit sichtbarem Browser
+npm run test:headed
 
 # Tests verlangsamt ausführen für Debugging
-npm run test:e2e:debug
+npm run test:debug
 
-# Manuell mit Umgebungsvariablen (Linux/Mac)
-HEADED=true npm run test:e2e
-SLOW_MO=100 HEADED=true npm run test:e2e
+# Interaktive Test-Oberfläche
+npm run test:ui
 ```
 
 ## Verwendung
