@@ -749,6 +749,10 @@
           // Expand parent nodes to show the path
           expandPathToNode(selectedNode);
 
+          // Apply same navigation logic as manual clicks
+          resetSisterNodes(selectedNode.id);
+          collapseSiblings(selectedNode.id);
+
           render();
           animateToClickedNode(selectedNode.id);
 
@@ -763,10 +767,16 @@
           const items = document.querySelectorAll(".search-dropdown-item");
           items.forEach((item, index) => {
             if (item.dataset.index !== undefined) {
-              item.classList.toggle(
-                "selected",
-                parseInt(item.dataset.index) === selectedSearchIndex
-              );
+              // Nur Items mit data-index können ausgewählt werden
+              const itemIndex = parseInt(item.dataset.index);
+              if (itemIndex === selectedSearchIndex) {
+                item.classList.add("selected");
+              } else {
+                item.classList.remove("selected");
+              }
+            } else {
+              // "... und X weitere" Element - nie selektiert
+              item.classList.remove("selected");
             }
           });
         }
@@ -852,14 +862,23 @@
           const searchInput = document.getElementById("mainSearch");
           const dropdown = document.getElementById("searchDropdown");
 
+          // Nur reagieren wenn Dropdown sichtbar ist
+          if (!dropdown.classList.contains("visible")) {
+            return;
+          }
+
           switch (e.key) {
             case "ArrowDown":
               e.preventDefault();
               if (mainSearchResults.length === 0) return;
+
+              // Berechne maximalen Index basierend auf sichtbaren Elementen
+              const maxResults = Math.min(8, mainSearchResults.length);
               selectedSearchIndex = Math.min(
                 selectedSearchIndex + 1,
-                mainSearchResults.length - 1
+                maxResults - 1
               );
+
               updateSearchSelection();
               scrollToSearchItem();
               break;
@@ -876,6 +895,7 @@
               e.preventDefault();
               if (
                 selectedSearchIndex >= 0 &&
+                selectedSearchIndex < mainSearchResults.length &&
                 mainSearchResults[selectedSearchIndex]
               ) {
                 selectSearchResult(selectedSearchIndex);
@@ -1602,7 +1622,7 @@
             d.onclick = () => {
               selectedSearchNode = h;
               exportSearchSelectedIndex = index;
-              updateSearchSelection();
+              updateExportSearchSelection();
             };
             d.onmouseenter = () => {
               exportSearchSelectedIndex = index;
@@ -1630,7 +1650,7 @@
           if (selectedSearchNode) {
             exportList.add(selectedSearchNode);
             updateExportList();
-            updateSearchSelection();
+            updateExportSearchSelection();
           }
         };
         window.removeFromExportList = () => {
@@ -1653,20 +1673,6 @@
             updateExportSelection();
           }
         };
-
-        function updateSearchSelection() {
-          Array.from(document.getElementById("exportResults").children).forEach(
-            (c) => c.classList.remove("selected")
-          );
-          if (selectedSearchNode) {
-            Array.from(
-              document.getElementById("exportResults").children
-            ).forEach((c) => {
-              if (c.textContent.includes(selectedSearchNode.name))
-                c.classList.add("selected");
-            });
-          }
-        }
 
         function updateExportSelection() {
           Array.from(document.getElementById("exportList").children).forEach(
@@ -1823,45 +1829,6 @@
           return [];
         }
 
-        function selectSearchResult(index) {
-          if (index < 0 || index >= mainSearchResults.length) return;
-
-          const selectedNode = mainSearchResults[index];
-          sel = selectedNode.id;
-
-          // Expand parent nodes to show the path
-          expandPathToNode(selectedNode);
-
-          render();
-          animateToClickedNode(selectedNode.id);
-
-          // Hide dropdown and clear search
-          document.getElementById("searchDropdown").classList.remove("visible");
-          document.getElementById("mainSearch").value = "";
-          selectedSearchIndex = -1;
-          mainSearchResults = [];
-        }
-
-        function updateSearchSelection() {
-          const items = document.querySelectorAll(".search-dropdown-item");
-          items.forEach((item, index) => {
-            if (item.dataset.index !== undefined) {
-              item.classList.toggle(
-                "selected",
-                parseInt(item.dataset.index) === selectedSearchIndex
-              );
-            }
-          });
-        }
-
-        function scrollToSearchItem() {
-          const items = document.querySelectorAll(
-            ".search-dropdown-item[data-index]"
-          );
-          if (selectedSearchIndex >= 0 && items[selectedSearchIndex]) {
-            items[selectedSearchIndex].scrollIntoView({ block: "nearest" });
-          }
-        }
         let currentExportFocus = "search"; // 'search' oder 'list'
 
         window.handleExportKeydown = (e) => {
